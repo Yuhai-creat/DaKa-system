@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V4.1</title>
+    <title>艺数联动打卡系统 V5.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -48,7 +48,7 @@
 
             <!-- 模块 2：待办区 -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
-                <!-- 日期切换器 -->
+                <!-- 待办日期切换器 -->
                 <div class="flex items-center justify-between mb-4">
                     <button onclick="changeDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
                     <div class="text-center">
@@ -64,9 +64,18 @@
                 </div>
             </div>
 
-            <!-- 模块 3：打卡记录墙 -->
-            <div>
-                <h2 class="text-lg font-bold text-gray-800 mb-3">🖼️ 我的打卡记录库</h2>
+            <!-- 模块 3：打卡记录墙 (V5.0 新增：按日期分区切换) -->
+            <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
+                <!-- 记录墙日期切换器 -->
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="changeHistoryDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
+                    <div class="text-center">
+                        <h2 class="text-lg font-bold text-gray-800" id="history-date-title">今日记录墙</h2>
+                        <span class="text-xs text-gray-400" id="history-date-subtitle"></span>
+                    </div>
+                    <button onclick="changeHistoryDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
+                </div>
+
                 <div id="history-list" class="grid grid-cols-2 gap-3">
                     <!-- 历史记录展示 -->
                 </div>
@@ -115,7 +124,8 @@
         let tasks = JSON.parse(localStorage.getItem('habitTasks')) ||[];
         let records = JSON.parse(localStorage.getItem('habitRecords')) ||[];
         
-        let viewDateObj = new Date();
+        let viewDateObj = new Date();        // 待办列表的查看日期
+        let historyDateObj = new Date();     // 记录墙的查看日期 【V5.0新增】
 
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -177,10 +187,16 @@
             renderTasks();
         }
 
-        // 切换日期逻辑
+        // 待办日期切换逻辑
         function changeDate(offset) {
             viewDateObj.setDate(viewDateObj.getDate() + offset);
             renderTasks();
+        }
+
+        // 记录墙日期切换逻辑 【V5.0新增】
+        function changeHistoryDate(offset) {
+            historyDateObj.setDate(historyDateObj.getDate() + offset);
+            renderRecords();
         }
 
         // --- 4. 渲染任务列表 ---
@@ -236,7 +252,6 @@
                     }
                 }
 
-                // 【修改结构：删除按钮居右】
                 const div = document.createElement('div');
                 div.className = 'relative overflow-hidden rounded-xl bg-red-500'; 
                 div.innerHTML = `
@@ -248,7 +263,6 @@
                             <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl">🎯</div>
                             <div>
                                 <p class="font-bold text-gray-800 text-base">${task.name}</p>
-                                <!-- 【修改提示文案】 -->
                                 <p class="text-xs text-gray-400 mt-0.5">⬅️ 左滑可删除该习惯</p>
                             </div>
                         </div>
@@ -261,7 +275,7 @@
             attachSwipeListeners();
         }
 
-        // 【修改逻辑：左滑删除事件监听】
+        // 左滑删除事件监听
         function attachSwipeListeners() {
             const cards = document.querySelectorAll('.task-card');
             cards.forEach(card => {
@@ -279,10 +293,8 @@
                     if (!isDragging) return;
                     const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
                     currentX = x - startX;
-                    
-                    // 【关键修改：只允许向左滑动 (负数)】
                     if (currentX < 0) {
-                        const moveX = Math.max(currentX, -90); // 最多向左拉出 90px
+                        const moveX = Math.max(currentX, -90); 
                         card.style.transform = `translateX(${moveX}px)`;
                     }
                 };
@@ -291,10 +303,8 @@
                     if (!isDragging) return;
                     isDragging = false;
                     card.style.transition = 'transform 0.3s ease'; 
-                    
-                    // 【关键修改：如果向左拉拽超过 45px，自动吸附打开】
                     if (currentX < -45) {
-                        card.style.transform = `translateX(-80px)`; // 固定停在 -80px 位置露出删除按钮
+                        card.style.transform = `translateX(-80px)`;
                     } else {
                         card.style.transform = `translateX(0px)`;
                     }
@@ -382,6 +392,10 @@
                 try {
                     localStorage.setItem('habitRecords', JSON.stringify(records));
                     closeModal();
+                    
+                    // 打卡成功后，自动将历史记录墙的日期也切换到当前打卡日期，方便用户立刻看到刚打卡的内容
+                    historyDateObj = new Date(viewDateObj);
+                    
                     renderTasks(); 
                     renderRecords();
                 } catch (error) {
@@ -401,17 +415,40 @@
             }
         }
 
-        // --- 7. 渲染打卡照片墙 ---
+        // --- 7. 渲染打卡照片墙 (V5.0：按日期过滤显示) ---
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
 
-            if (records.length === 0) {
-                historyListDiv.innerHTML = '<p class="text-gray-400 text-sm col-span-2">你还没留下过足迹呢~</p>';
+            // 获取当前选择的查看记录日期
+            const todayStr = getStrFromDate(new Date());
+            const viewHistoryStr = getStrFromDate(historyDateObj);
+
+            // 更新记录墙的标题UI
+            const titleEl = document.getElementById('history-date-title');
+            const subTitleEl = document.getElementById('history-date-subtitle');
+            subTitleEl.textContent = viewHistoryStr;
+            
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            if (viewHistoryStr === todayStr) {
+                titleEl.textContent = '今日记录墙';
+            } else if (viewHistoryStr === getStrFromDate(yesterdayDate)) {
+                titleEl.textContent = '昨日记录墙';
+            } else {
+                titleEl.textContent = `${historyDateObj.getMonth()+1}月${historyDateObj.getDate()}日 记录`;
+            }
+
+            // 【核心逻辑】：只过滤出日期等于所选日期的打卡记录
+            const dailyRecords = records.filter(r => r.date === viewHistoryStr);
+
+            if (dailyRecords.length === 0) {
+                historyListDiv.innerHTML = `<p class="text-gray-400 text-sm col-span-2 text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">这一天还没有留下足迹哦~</p>`;
                 return;
             }
 
-            records.forEach(record => {
+            // 只渲染当前选中日期的记录
+            dailyRecords.forEach(record => {
                 const div = document.createElement('div');
                 div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
                 
