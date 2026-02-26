@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统</title>
+    <title>艺数联动打卡系统 V3.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 自定义一些平滑过渡效果 */
         .day-btn { transition: all 0.2s ease; }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-[#f5f7f5] font-sans min-h-screen text-gray-800 pb-10">
@@ -16,53 +17,50 @@
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg sm:rounded-2xl sm:min-h-[800px] sm:mt-6 sm:overflow-hidden relative">
         
         <!-- 顶部导航条 -->
-        <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-10">
+        <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-20">
             <h1 class="text-xl font-bold text-gray-800">艺数联动打卡系统</h1>
             <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
         </div>
 
         <div class="p-5 space-y-6">
             
-            <!-- 模块 1：创建习惯 (还原原型图) -->
+            <!-- 模块 1：创建习惯 (保留原有所有功能) -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                
-                <!-- 习惯名称输入 -->
                 <div class="mb-5 flex gap-2">
                     <input type="text" id="task-name" class="flex-1 bg-[#f8faf8] border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4caf50]" placeholder="例如早起、背单词等">
                 </div>
-
-                <!-- 习惯周期选择 -->
                 <div class="mb-5">
                     <h3 class="text-sm font-bold text-gray-700 mb-3">习惯周期</h3>
                     <div class="flex gap-2 mb-3">
                         <span class="bg-[#eaf5ec] text-[#2e7d32] px-4 py-1.5 rounded-md text-sm font-bold cursor-pointer">按周</span>
                         <span class="text-gray-400 px-4 py-1.5 rounded-md text-sm cursor-pointer">固定/其他暂不演示</span>
                     </div>
-                    <!-- 星期选择器 -->
-                    <div class="flex justify-between mt-4" id="week-days-container">
-                        <!-- JS 动态生成星期按钮 -->
-                    </div>
+                    <div class="flex justify-between mt-4" id="week-days-container"></div>
                 </div>
-
-                <!-- 开始日期 -->
                 <div class="mb-5 flex justify-between items-center border-t border-gray-50 pt-4">
                     <h3 class="text-sm font-bold text-gray-700">打卡开始日期</h3>
                     <input type="date" id="start-date" class="text-sm text-gray-600 border-none outline-none bg-transparent text-right">
                 </div>
-
                 <button onclick="createTask()" class="w-full bg-[#4caf50] hover:bg-[#43a047] text-white font-bold py-3 px-4 rounded-full shadow-md transition-colors">
                     保存习惯，开始执行
                 </button>
             </div>
 
-            <!-- 模块 2：今日打卡区 (核心逻辑：只显示当天的任务) -->
-            <div>
-                <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    📅 今日待办 
-                    <span class="text-xs font-normal text-gray-400">系统每天会自动刷新</span>
-                </h2>
+            <!-- 模块 2：待办区 (新增：日期切换功能) -->
+            <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
+                <!-- 日期切换器 -->
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="changeDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
+                    <div class="text-center">
+                        <h2 class="text-lg font-bold text-gray-800" id="view-date-title">今日待办</h2>
+                        <span class="text-xs text-gray-400" id="view-date-subtitle"></span>
+                    </div>
+                    <button onclick="changeDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
+                </div>
+                
+                <!-- 任务列表 -->
                 <div id="today-tasks-list" class="space-y-3">
-                    <!-- 今日任务动态渲染在此处 -->
+                    <!-- 动态渲染在此处 -->
                 </div>
             </div>
 
@@ -100,7 +98,6 @@
 
     <script>
         // --- 核心数据结构 ---
-        // JS 中的 getDay() 方法：0=周日，1=周一，2=周二...6=周六
         const DAYS_MAP =[
             { label: '一', value: 1 }, { label: '二', value: 2 }, 
             { label: '三', value: 3 }, { label: '四', value: 4 }, 
@@ -108,26 +105,23 @@
             { label: '日', value: 0 }
         ];
         
-        let selectedDays =[1, 2, 3, 4, 5, 6, 0]; // 默认全选
+        let selectedDays =[1, 2, 3, 4, 5, 6, 0]; 
         let tasks = JSON.parse(localStorage.getItem('habitTasks')) ||[];
         let records = JSON.parse(localStorage.getItem('habitRecords')) ||[];
+        
+        // 【新增】当前查看的日期（默认今天）
+        let viewDateObj = new Date();
 
-        // 获取格式化日期 (YYYY-MM-DD)
-        function getTodayString() {
-            const today = new Date();
-            // 处理时区导致的日期偏差，确保拿到本地的 YYYY-MM-DD
-            return today.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        // 获取 YYYY-MM-DD 格式字符串的工具函数
+        function getStrFromDate(d) {
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
 
         // --- 1. 初始化页面 UI ---
         function initUI() {
-            // 顶层日期显示
             document.getElementById('header-date').innerText = new Date().toLocaleDateString('zh-CN', {month: 'long', day: 'numeric'});
-            
-            // 默认开始日期填今天
-            document.getElementById('start-date').value = getTodayString();
+            document.getElementById('start-date').value = getStrFromDate(new Date());
 
-            // 渲染星期选择器
             const container = document.getElementById('week-days-container');
             container.innerHTML = '';
             DAYS_MAP.forEach(day => {
@@ -139,14 +133,13 @@
                 container.appendChild(btn);
             });
 
-            renderTodayTasks();
+            renderTasks();
             renderRecords();
         }
 
         // --- 2. 切换打卡周期 ---
         function toggleDay(dayValue, btnElement) {
             if (selectedDays.includes(dayValue)) {
-                // 如果只剩一天了，不让取消（必须选一天）
                 if (selectedDays.length === 1) return alert('至少需要选择一天打卡哦！');
                 selectedDays = selectedDays.filter(d => d !== dayValue);
                 btnElement.className = 'day-btn w-9 h-9 flex items-center justify-center rounded-full text-sm font-bold cursor-pointer bg-gray-100 text-gray-400';
@@ -167,7 +160,7 @@
             const newTask = {
                 id: 'task_' + Date.now(),
                 name: name,
-                cycleDays: [...selectedDays], // 保存选中的星期 [1,2,3...]
+                cycleDays: [...selectedDays],
                 startDate: startDate,
                 createTime: new Date().getTime()
             };
@@ -177,61 +170,166 @@
             
             document.getElementById('task-name').value = '';
             alert('习惯创建成功！');
-            renderTodayTasks();
+            renderTasks();
         }
 
-        // --- 4. 渲染【今天】需要打卡的任务 ---
-        function renderTodayTasks() {
+        // 【新增功能 2】切换日期逻辑
+        function changeDate(offset) {
+            viewDateObj.setDate(viewDateObj.getDate() + offset);
+            renderTasks();
+        }
+
+        // --- 4. 渲染任务列表 (支持日期切换与右滑删除) ---
+        function renderTasks() {
             const listDiv = document.getElementById('today-tasks-list');
             listDiv.innerHTML = '';
 
-            const todayStr = getTodayString();
-            const todayDayOfWeek = new Date().getDay(); // 今天是星期几
+            const todayStr = getStrFromDate(new Date());
+            const viewDateStr = getStrFromDate(viewDateObj);
+            const viewDayOfWeek = viewDateObj.getDay();
 
-            // 核心逻辑：过滤出【已开始】且【周期包含今天】的任务
+            // 更新 UI 标题
+            const titleEl = document.getElementById('view-date-title');
+            const subTitleEl = document.getElementById('view-date-subtitle');
+            subTitleEl.textContent = viewDateStr;
+            
+            // 判断当前查看的是不是今天/昨天
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            if (viewDateStr === todayStr) {
+                titleEl.textContent = '今日待办';
+            } else if (viewDateStr === getStrFromDate(yesterdayDate)) {
+                titleEl.textContent = '昨日待办';
+            } else {
+                titleEl.textContent = `${viewDateObj.getMonth()+1}月${viewDateObj.getDate()}日 待办`;
+            }
+
+            // 过滤当日任务
             const todaysTasks = tasks.filter(task => {
-                const hasStarted = task.startDate <= todayStr;
-                const isScheduledToday = task.cycleDays.includes(todayDayOfWeek);
+                const hasStarted = task.startDate <= viewDateStr;
+                const isScheduledToday = task.cycleDays.includes(viewDayOfWeek);
                 return hasStarted && isScheduledToday;
             });
 
             if (todaysTasks.length === 0) {
-                listDiv.innerHTML = '<div class="text-center p-6 bg-gray-50 rounded-xl text-gray-400 text-sm border border-dashed border-gray-200">今天没有任何打卡任务哦，去创建或者放松一下吧~</div>';
+                listDiv.innerHTML = '<div class="text-center p-6 bg-gray-50 rounded-xl text-gray-400 text-sm border border-dashed border-gray-200">这一天没有任何打卡任务哦~</div>';
                 return;
             }
 
             todaysTasks.forEach(task => {
-                // 判断今天是否已经打过卡
-                const hasCheckedInToday = records.some(r => r.taskId === task.id && r.date === todayStr);
+                // 判断当前查看的日期是否已打卡
+                const hasCheckedIn = records.some(r => r.taskId === task.id && r.date === viewDateStr);
 
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center p-4 bg-white rounded-xl shadow-sm border border-gray-100';
-                
+                // 按钮状态逻辑 (区分过去/现在/未来)
                 let buttonHtml = '';
-                if (hasCheckedInToday) {
+                const isFuture = viewDateStr > todayStr;
+                const isPast = viewDateStr < todayStr;
+
+                if (hasCheckedIn) {
                     buttonHtml = `<button disabled class="bg-gray-100 text-gray-400 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-1"><span>✅</span> 已完成</button>`;
                 } else {
-                    buttonHtml = `<button onclick="openModal('${task.id}', '${task.name}')" class="bg-[#eaf5ec] text-[#2e7d32] px-4 py-2 rounded-full text-sm font-bold hover:bg-[#c8e6c9] transition-colors shadow-sm">去打卡</button>`;
+                    if (isFuture) {
+                        buttonHtml = `<button disabled class="bg-gray-100 text-gray-400 px-4 py-2 rounded-full text-sm font-bold">⏳ 未开始</button>`;
+                    } else if (isPast) {
+                        buttonHtml = `<button onclick="openModal('${task.id}', '${task.name}')" class="bg-orange-100 text-orange-600 px-4 py-2 rounded-full text-sm font-bold hover:bg-orange-200">⚠️ 补卡</button>`;
+                    } else {
+                        buttonHtml = `<button onclick="openModal('${task.id}', '${task.name}')" class="bg-[#eaf5ec] text-[#2e7d32] px-4 py-2 rounded-full text-sm font-bold hover:bg-[#c8e6c9] transition-colors shadow-sm">🎯 去打卡</button>`;
+                    }
                 }
 
+                // 【新增功能 1】构建支持右滑删除的 HTML 结构
+                const div = document.createElement('div');
+                div.className = 'relative overflow-hidden rounded-xl bg-red-500'; // 底层红色背景
                 div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl">🎯</div>
-                        <div>
-                            <p class="font-bold text-gray-800 text-base">${task.name}</p>
-                            <p class="text-xs text-gray-400 mt-0.5">今天需要完成</p>
-                        </div>
+                    <!-- 隐藏在底部的删除按钮 -->
+                    <div class="absolute inset-y-0 left-0 w-24 flex items-center justify-start pl-4 text-white font-bold cursor-pointer" onclick="deleteTask('${task.id}')">
+                        🗑️ 删除
                     </div>
-                    ${buttonHtml}
+                    <!-- 顶层可滑动的卡片内容 -->
+                    <div class="task-card relative bg-white p-4 flex justify-between items-center rounded-xl shadow-sm border border-gray-100 z-10 transition-transform duration-300">
+                        <div class="flex items-center gap-3 pointer-events-none">
+                            <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl">🎯</div>
+                            <div>
+                                <p class="font-bold text-gray-800 text-base">${task.name}</p>
+                                <p class="text-xs text-gray-400 mt-0.5">右滑可删除该习惯 ➡️</p>
+                            </div>
+                        </div>
+                        ${buttonHtml}
+                    </div>
                 `;
                 listDiv.appendChild(div);
             });
+
+            // 绑定滑动事件
+            attachSwipeListeners();
+        }
+
+        // 【新增功能 1】滑动事件监听逻辑 (兼容鼠标拖拽和手机触摸)
+        function attachSwipeListeners() {
+            const cards = document.querySelectorAll('.task-card');
+            cards.forEach(card => {
+                let isDragging = false;
+                let startX = 0;
+                let currentX = 0;
+
+                const startDrag = (e) => {
+                    isDragging = true;
+                    // 兼容鼠标和触摸事件
+                    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+                    card.style.transition = 'none'; // 拖拽时取消动画，让手感跟随
+                };
+
+                const moveDrag = (e) => {
+                    if (!isDragging) return;
+                    const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+                    currentX = x - startX;
+                    // 只允许向右滑动 (currentX > 0)
+                    if (currentX > 0) {
+                        const moveX = Math.min(currentX, 90); // 最多拉出 90px
+                        card.style.transform = `translateX(${moveX}px)`;
+                    }
+                };
+
+                const endDrag = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    card.style.transition = 'transform 0.3s ease'; // 松手时恢复动画
+                    // 如果拉拽超过 45px，自动吸附打开；否则自动关闭
+                    if (currentX > 45) {
+                        card.style.transform = `translateX(80px)`;
+                    } else {
+                        card.style.transform = `translateX(0px)`;
+                    }
+                    currentX = 0;
+                };
+
+                // 触摸端监听
+                card.addEventListener('touchstart', startDrag, {passive: true});
+                card.addEventListener('touchmove', moveDrag, {passive: true});
+                card.addEventListener('touchend', endDrag);
+
+                // 电脑端鼠标监听 (方便你用电脑验收)
+                card.addEventListener('mousedown', startDrag);
+                card.addEventListener('mousemove', moveDrag);
+                card.addEventListener('mouseup', endDrag);
+                card.addEventListener('mouseleave', endDrag);
+            });
+        }
+
+        // 【新增功能 1】删除习惯逻辑
+        function deleteTask(taskId) {
+            if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
+                tasks = tasks.filter(t => t.id !== taskId);
+                localStorage.setItem('habitTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
         }
 
         // --- 5. 弹窗与照片预览 ---
         function openModal(taskId, taskName) {
             document.getElementById('current-task-id').value = taskId;
-            document.getElementById('modal-title').textContent = taskName;
+            const isPast = getStrFromDate(viewDateObj) < getStrFromDate(new Date());
+            document.getElementById('modal-title').textContent = isPast ? `补卡: ${taskName}` : `打卡: ${taskName}`;
             document.getElementById('photo-upload').value = ''; 
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('image-preview').src = '';
@@ -255,7 +353,7 @@
             }
         }
 
-        // --- 6. 提交打卡 (记录日期防重复打卡) ---
+        // --- 6. 提交打卡 (适配日期切换) ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -266,15 +364,17 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 const task = tasks.find(t => t.id === taskId);
-                const todayStr = getTodayString();
+                
+                // 【核心修改】记录的日期不再是死板的"今天"，而是你当前切换到的日期 viewDateStr
+                const checkInDateStr = getStrFromDate(viewDateObj);
                 
                 const newRecord = {
                     id: 'rec_' + Date.now(),
                     taskId: taskId,
                     taskName: task.name,
-                    date: todayStr, // 关键：记录打卡日期，用于判断当天是否已打卡
+                    date: checkInDateStr,
                     time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-                    image: e.target.result // Base64照片
+                    image: e.target.result
                 };
 
                 records.unshift(newRecord); 
@@ -282,8 +382,8 @@
                 try {
                     localStorage.setItem('habitRecords', JSON.stringify(records));
                     closeModal();
-                    renderTodayTasks(); // 刷新今日任务列表（按钮会变成已打卡）
-                    renderRecords();    // 刷新照片墙
+                    renderTasks(); 
+                    renderRecords();
                 } catch (error) {
                     alert('图片过大，请尝试压缩或上传稍小的图片哦！');
                     records.shift();
