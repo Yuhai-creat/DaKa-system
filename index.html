@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V4.0 (图文版)</title>
+    <title>艺数联动打卡系统 V4.1</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -46,7 +46,7 @@
                 </button>
             </div>
 
-            <!-- 模块 2：待办区 (保留日期切换与滑动删除) -->
+            <!-- 模块 2：待办区 -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
                 <!-- 日期切换器 -->
                 <div class="flex items-center justify-between mb-4">
@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    <!-- 打卡弹窗 (V4.0 新增文字输入框) -->
+    <!-- 打卡弹窗 -->
     <div id="checkin-modal" class="fixed inset-0 bg-black bg-opacity-40 hidden flex justify-center items-end sm:items-center z-50">
         <div class="bg-white p-6 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:w-96 transform transition-transform">
             <h3 class="text-xl font-bold mb-4 text-center text-gray-800" id="modal-title">进行打卡</h3>
@@ -90,7 +90,7 @@
                 <img id="image-preview" class="hidden mt-3 rounded-lg max-h-32 mx-auto object-cover" />
             </div>
 
-            <!-- 【新增】文字输入区域 -->
+            <!-- 文字输入区域 -->
             <div class="mb-6">
                 <textarea id="checkin-note" rows="2" class="w-full bg-[#f8faf8] border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4caf50]" placeholder="写点打卡心得吧（例如：已经完成作业啦！）"></textarea>
             </div>
@@ -236,18 +236,20 @@
                     }
                 }
 
+                // 【修改结构：删除按钮居右】
                 const div = document.createElement('div');
                 div.className = 'relative overflow-hidden rounded-xl bg-red-500'; 
                 div.innerHTML = `
-                    <div class="absolute inset-y-0 left-0 w-24 flex items-center justify-start pl-4 text-white font-bold cursor-pointer" onclick="deleteTask('${task.id}')">
-                        🗑️ 删除
+                    <div class="absolute inset-y-0 right-0 w-24 flex items-center justify-end pr-4 text-white font-bold cursor-pointer" onclick="deleteTask('${task.id}')">
+                        删除 🗑️
                     </div>
                     <div class="task-card relative bg-white p-4 flex justify-between items-center rounded-xl shadow-sm border border-gray-100 z-10 transition-transform duration-300">
                         <div class="flex items-center gap-3 pointer-events-none">
                             <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl">🎯</div>
                             <div>
                                 <p class="font-bold text-gray-800 text-base">${task.name}</p>
-                                <p class="text-xs text-gray-400 mt-0.5">右滑可删除该习惯 ➡️</p>
+                                <!-- 【修改提示文案】 -->
+                                <p class="text-xs text-gray-400 mt-0.5">⬅️ 左滑可删除该习惯</p>
                             </div>
                         </div>
                         ${buttonHtml}
@@ -259,7 +261,7 @@
             attachSwipeListeners();
         }
 
-        // 滑动删除事件监听
+        // 【修改逻辑：左滑删除事件监听】
         function attachSwipeListeners() {
             const cards = document.querySelectorAll('.task-card');
             cards.forEach(card => {
@@ -277,8 +279,10 @@
                     if (!isDragging) return;
                     const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
                     currentX = x - startX;
-                    if (currentX > 0) {
-                        const moveX = Math.min(currentX, 90); 
+                    
+                    // 【关键修改：只允许向左滑动 (负数)】
+                    if (currentX < 0) {
+                        const moveX = Math.max(currentX, -90); // 最多向左拉出 90px
                         card.style.transform = `translateX(${moveX}px)`;
                     }
                 };
@@ -287,8 +291,10 @@
                     if (!isDragging) return;
                     isDragging = false;
                     card.style.transition = 'transform 0.3s ease'; 
-                    if (currentX > 45) {
-                        card.style.transform = `translateX(80px)`;
+                    
+                    // 【关键修改：如果向左拉拽超过 45px，自动吸附打开】
+                    if (currentX < -45) {
+                        card.style.transform = `translateX(-80px)`; // 固定停在 -80px 位置露出删除按钮
                     } else {
                         card.style.transform = `translateX(0px)`;
                     }
@@ -321,11 +327,10 @@
             const isPast = getStrFromDate(viewDateObj) < getStrFromDate(new Date());
             document.getElementById('modal-title').textContent = isPast ? `补卡: ${taskName}` : `打卡: ${taskName}`;
             
-            // 【清空上次的状态】
             document.getElementById('photo-upload').value = ''; 
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('image-preview').src = '';
-            document.getElementById('checkin-note').value = ''; // 清空文字框
+            document.getElementById('checkin-note').value = ''; 
 
             document.getElementById('checkin-modal').classList.remove('hidden');
         }
@@ -347,19 +352,17 @@
             }
         }
 
-        // --- 6. 提交打卡 (V4.0：兼容图文、纯图、纯文) ---
+        // --- 6. 提交打卡 ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
             const file = fileInput.files[0];
             const note = document.getElementById('checkin-note').value.trim();
 
-            // 校验：照片和文字必须至少填一项
             if (!file && !note) {
                 return alert('请至少上传一张照片或写一句心得哦！');
             }
 
-            // 提取出公共的保存函数
             const saveRecord = (imageBase64) => {
                 const task = tasks.find(t => t.id === taskId);
                 const checkInDateStr = getStrFromDate(viewDateObj);
@@ -370,8 +373,8 @@
                     taskName: task.name,
                     date: checkInDateStr,
                     time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-                    image: imageBase64, // 如果没选照片，这里是 null
-                    note: note          // 如果没填文字，这里是 空字符串
+                    image: imageBase64, 
+                    note: note          
                 };
 
                 records.unshift(newRecord); 
@@ -387,7 +390,6 @@
                 }
             };
 
-            // 如果有图片，就解析图片；如果没有，直接传 null 保存
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -399,7 +401,7 @@
             }
         }
 
-        // --- 7. 渲染打卡照片墙 (V4.0：适配文字展示) ---
+        // --- 7. 渲染打卡照片墙 ---
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
@@ -413,7 +415,6 @@
                 const div = document.createElement('div');
                 div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
                 
-                // 处理图片显示：有图显图，无图显图标
                 let imageHtml = '';
                 if (record.image) {
                     imageHtml = `<img src="${record.image}" class="w-full h-32 object-cover">`;
@@ -421,7 +422,6 @@
                     imageHtml = `<div class="w-full h-24 bg-[#eaf5ec] flex items-center justify-center text-3xl">📝</div>`;
                 }
 
-                // 处理文字显示：有文字则显示在图片下方
                 let noteHtml = '';
                 if (record.note) {
                     noteHtml = `<div class="px-3 py-2 text-xs text-gray-600 border-b border-gray-50 italic">"${record.note}"</div>`;
