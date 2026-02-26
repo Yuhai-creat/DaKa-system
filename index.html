@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V3.0</title>
+    <title>周期习惯打卡系统 V4.0 (图文版)</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,7 +18,7 @@
         
         <!-- 顶部导航条 -->
         <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-bold text-gray-800">艺数联动打卡系统</h1>
+            <h1 class="text-xl font-bold text-gray-800">创建习惯</h1>
             <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
         </div>
 
@@ -46,7 +46,7 @@
                 </button>
             </div>
 
-            <!-- 模块 2：待办区 (新增：日期切换功能) -->
+            <!-- 模块 2：待办区 (保留日期切换与滑动删除) -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
                 <!-- 日期切换器 -->
                 <div class="flex items-center justify-between mb-4">
@@ -74,19 +74,25 @@
         </div>
     </div>
 
-    <!-- 打卡弹窗 -->
+    <!-- 打卡弹窗 (V4.0 新增文字输入框) -->
     <div id="checkin-modal" class="fixed inset-0 bg-black bg-opacity-40 hidden flex justify-center items-end sm:items-center z-50">
         <div class="bg-white p-6 rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:w-96 transform transition-transform">
             <h3 class="text-xl font-bold mb-4 text-center text-gray-800" id="modal-title">进行打卡</h3>
             <input type="hidden" id="current-task-id">
             
-            <div class="mb-6 border-2 border-dashed border-[#a5d6a7] rounded-xl p-4 text-center bg-[#f1f8e9]">
+            <!-- 上传照片区域 -->
+            <div class="mb-4 border-2 border-dashed border-[#a5d6a7] rounded-xl p-4 text-center bg-[#f1f8e9]">
                 <label for="photo-upload" class="cursor-pointer block">
                     <div class="text-[#4caf50] mb-2 text-3xl">📷</div>
                     <p class="text-sm text-gray-600 font-medium">点击拍摄或上传照片</p>
                     <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="previewImage(event)"/>
                 </label>
-                <img id="image-preview" class="hidden mt-3 rounded-lg max-h-40 mx-auto object-cover" />
+                <img id="image-preview" class="hidden mt-3 rounded-lg max-h-32 mx-auto object-cover" />
+            </div>
+
+            <!-- 【新增】文字输入区域 -->
+            <div class="mb-6">
+                <textarea id="checkin-note" rows="2" class="w-full bg-[#f8faf8] border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4caf50]" placeholder="写点打卡心得吧（例如：已经完成作业啦！）"></textarea>
             </div>
 
             <div class="flex gap-3">
@@ -109,10 +115,8 @@
         let tasks = JSON.parse(localStorage.getItem('habitTasks')) ||[];
         let records = JSON.parse(localStorage.getItem('habitRecords')) ||[];
         
-        // 【新增】当前查看的日期（默认今天）
         let viewDateObj = new Date();
 
-        // 获取 YYYY-MM-DD 格式字符串的工具函数
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
@@ -173,13 +177,13 @@
             renderTasks();
         }
 
-        // 【新增功能 2】切换日期逻辑
+        // 切换日期逻辑
         function changeDate(offset) {
             viewDateObj.setDate(viewDateObj.getDate() + offset);
             renderTasks();
         }
 
-        // --- 4. 渲染任务列表 (支持日期切换与右滑删除) ---
+        // --- 4. 渲染任务列表 ---
         function renderTasks() {
             const listDiv = document.getElementById('today-tasks-list');
             listDiv.innerHTML = '';
@@ -188,12 +192,10 @@
             const viewDateStr = getStrFromDate(viewDateObj);
             const viewDayOfWeek = viewDateObj.getDay();
 
-            // 更新 UI 标题
             const titleEl = document.getElementById('view-date-title');
             const subTitleEl = document.getElementById('view-date-subtitle');
             subTitleEl.textContent = viewDateStr;
             
-            // 判断当前查看的是不是今天/昨天
             const yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
             if (viewDateStr === todayStr) {
@@ -204,7 +206,6 @@
                 titleEl.textContent = `${viewDateObj.getMonth()+1}月${viewDateObj.getDate()}日 待办`;
             }
 
-            // 过滤当日任务
             const todaysTasks = tasks.filter(task => {
                 const hasStarted = task.startDate <= viewDateStr;
                 const isScheduledToday = task.cycleDays.includes(viewDayOfWeek);
@@ -217,10 +218,8 @@
             }
 
             todaysTasks.forEach(task => {
-                // 判断当前查看的日期是否已打卡
                 const hasCheckedIn = records.some(r => r.taskId === task.id && r.date === viewDateStr);
 
-                // 按钮状态逻辑 (区分过去/现在/未来)
                 let buttonHtml = '';
                 const isFuture = viewDateStr > todayStr;
                 const isPast = viewDateStr < todayStr;
@@ -237,15 +236,12 @@
                     }
                 }
 
-                // 【新增功能 1】构建支持右滑删除的 HTML 结构
                 const div = document.createElement('div');
-                div.className = 'relative overflow-hidden rounded-xl bg-red-500'; // 底层红色背景
+                div.className = 'relative overflow-hidden rounded-xl bg-red-500'; 
                 div.innerHTML = `
-                    <!-- 隐藏在底部的删除按钮 -->
                     <div class="absolute inset-y-0 left-0 w-24 flex items-center justify-start pl-4 text-white font-bold cursor-pointer" onclick="deleteTask('${task.id}')">
                         🗑️ 删除
                     </div>
-                    <!-- 顶层可滑动的卡片内容 -->
                     <div class="task-card relative bg-white p-4 flex justify-between items-center rounded-xl shadow-sm border border-gray-100 z-10 transition-transform duration-300">
                         <div class="flex items-center gap-3 pointer-events-none">
                             <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl">🎯</div>
@@ -260,11 +256,10 @@
                 listDiv.appendChild(div);
             });
 
-            // 绑定滑动事件
             attachSwipeListeners();
         }
 
-        // 【新增功能 1】滑动事件监听逻辑 (兼容鼠标拖拽和手机触摸)
+        // 滑动删除事件监听
         function attachSwipeListeners() {
             const cards = document.querySelectorAll('.task-card');
             cards.forEach(card => {
@@ -274,18 +269,16 @@
 
                 const startDrag = (e) => {
                     isDragging = true;
-                    // 兼容鼠标和触摸事件
                     startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-                    card.style.transition = 'none'; // 拖拽时取消动画，让手感跟随
+                    card.style.transition = 'none'; 
                 };
 
                 const moveDrag = (e) => {
                     if (!isDragging) return;
                     const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
                     currentX = x - startX;
-                    // 只允许向右滑动 (currentX > 0)
                     if (currentX > 0) {
-                        const moveX = Math.min(currentX, 90); // 最多拉出 90px
+                        const moveX = Math.min(currentX, 90); 
                         card.style.transform = `translateX(${moveX}px)`;
                     }
                 };
@@ -293,8 +286,7 @@
                 const endDrag = (e) => {
                     if (!isDragging) return;
                     isDragging = false;
-                    card.style.transition = 'transform 0.3s ease'; // 松手时恢复动画
-                    // 如果拉拽超过 45px，自动吸附打开；否则自动关闭
+                    card.style.transition = 'transform 0.3s ease'; 
                     if (currentX > 45) {
                         card.style.transform = `translateX(80px)`;
                     } else {
@@ -303,12 +295,10 @@
                     currentX = 0;
                 };
 
-                // 触摸端监听
                 card.addEventListener('touchstart', startDrag, {passive: true});
                 card.addEventListener('touchmove', moveDrag, {passive: true});
                 card.addEventListener('touchend', endDrag);
 
-                // 电脑端鼠标监听 (方便你用电脑验收)
                 card.addEventListener('mousedown', startDrag);
                 card.addEventListener('mousemove', moveDrag);
                 card.addEventListener('mouseup', endDrag);
@@ -316,7 +306,7 @@
             });
         }
 
-        // 【新增功能 1】删除习惯逻辑
+        // 删除习惯逻辑
         function deleteTask(taskId) {
             if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
                 tasks = tasks.filter(t => t.id !== taskId);
@@ -330,9 +320,13 @@
             document.getElementById('current-task-id').value = taskId;
             const isPast = getStrFromDate(viewDateObj) < getStrFromDate(new Date());
             document.getElementById('modal-title').textContent = isPast ? `补卡: ${taskName}` : `打卡: ${taskName}`;
+            
+            // 【清空上次的状态】
             document.getElementById('photo-upload').value = ''; 
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('image-preview').src = '';
+            document.getElementById('checkin-note').value = ''; // 清空文字框
+
             document.getElementById('checkin-modal').classList.remove('hidden');
         }
 
@@ -353,19 +347,21 @@
             }
         }
 
-        // --- 6. 提交打卡 (适配日期切换) ---
+        // --- 6. 提交打卡 (V4.0：兼容图文、纯图、纯文) ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
             const file = fileInput.files[0];
+            const note = document.getElementById('checkin-note').value.trim();
 
-            if (!file) return alert('还没上传照片呢！');
+            // 校验：照片和文字必须至少填一项
+            if (!file && !note) {
+                return alert('请至少上传一张照片或写一句心得哦！');
+            }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
+            // 提取出公共的保存函数
+            const saveRecord = (imageBase64) => {
                 const task = tasks.find(t => t.id === taskId);
-                
-                // 【核心修改】记录的日期不再是死板的"今天"，而是你当前切换到的日期 viewDateStr
                 const checkInDateStr = getStrFromDate(viewDateObj);
                 
                 const newRecord = {
@@ -374,7 +370,8 @@
                     taskName: task.name,
                     date: checkInDateStr,
                     time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
-                    image: e.target.result
+                    image: imageBase64, // 如果没选照片，这里是 null
+                    note: note          // 如果没填文字，这里是 空字符串
                 };
 
                 records.unshift(newRecord); 
@@ -385,14 +382,24 @@
                     renderTasks(); 
                     renderRecords();
                 } catch (error) {
-                    alert('图片过大，请尝试压缩或上传稍小的图片哦！');
+                    alert('存储失败，可能是图片过大超出了浏览器限制！');
                     records.shift();
                 }
             };
-            reader.readAsDataURL(file); 
+
+            // 如果有图片，就解析图片；如果没有，直接传 null 保存
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    saveRecord(e.target.result);
+                };
+                reader.readAsDataURL(file); 
+            } else {
+                saveRecord(null);
+            }
         }
 
-        // --- 7. 渲染打卡照片墙 ---
+        // --- 7. 渲染打卡照片墙 (V4.0：适配文字展示) ---
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
@@ -404,15 +411,31 @@
 
             records.forEach(record => {
                 const div = document.createElement('div');
-                div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden';
+                div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
+                
+                // 处理图片显示：有图显图，无图显图标
+                let imageHtml = '';
+                if (record.image) {
+                    imageHtml = `<img src="${record.image}" class="w-full h-32 object-cover">`;
+                } else {
+                    imageHtml = `<div class="w-full h-24 bg-[#eaf5ec] flex items-center justify-center text-3xl">📝</div>`;
+                }
+
+                // 处理文字显示：有文字则显示在图片下方
+                let noteHtml = '';
+                if (record.note) {
+                    noteHtml = `<div class="px-3 py-2 text-xs text-gray-600 border-b border-gray-50 italic">"${record.note}"</div>`;
+                }
+
                 div.innerHTML = `
-                    <div class="h-32 bg-gray-200 overflow-hidden relative">
-                        <img src="${record.image}" class="w-full h-full object-cover">
+                    <div class="relative overflow-hidden bg-gray-200">
+                        ${imageHtml}
                         <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white">
                             <p class="text-xs font-bold drop-shadow-md">${record.taskName}</p>
                         </div>
                     </div>
-                    <div class="p-2 flex justify-between items-center bg-[#fafafa]">
+                    ${noteHtml}
+                    <div class="p-2 flex justify-between items-center bg-[#fafafa] mt-auto">
                         <span class="text-[10px] text-gray-400">✅ ${record.date}</span>
                         <span class="text-[10px] text-gray-400">${record.time}</span>
                     </div>
