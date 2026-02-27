@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V7.0</title>
+    <title>艺数联动打卡系统 V8.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 【核心新增】引入 localForage 库，用于调用浏览器底层大容量数据库 IndexedDB -->
+    <!-- 引入 localForage 库，用于调用浏览器底层大容量数据库 IndexedDB -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <style>
         .day-btn { transition: all 0.2s ease; }
@@ -22,7 +22,7 @@
             <h1 class="text-xl font-bold text-gray-800">艺数清单2.0</h1>
             <div class="flex items-center gap-3">
                 <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
-                <!-- 【新增】一键清空测试数据按钮 -->
+                <!-- 一键清空测试数据按钮 -->
                 <button onclick="clearAllData()" class="text-xl text-gray-400 hover:text-red-500 transition-colors" title="清空所有测试数据">⚙️</button>
             </div>
         </div>
@@ -134,19 +134,16 @@
         // --- 0. 异步数据库初始化与数据迁移 ---
         async function initData() {
             try {
-                // 读取新数据库（大容量 IndexedDB）
                 let lfTasks = await localforage.getItem('habitTasks');
                 let lfRecords = await localforage.getItem('habitRecords');
 
-                // 读取旧数据库（容量极小的 localStorage）
                 let oldTasks = localStorage.getItem('habitTasks');
                 let oldRecords = localStorage.getItem('habitRecords');
 
-                // 如果新库是空的，但旧库有东西，执行【自动搬家】
                 if (!lfTasks && oldTasks) {
                     tasks = JSON.parse(oldTasks);
                     await localforage.setItem('habitTasks', tasks);
-                    localStorage.removeItem('habitTasks'); // 搬空旧房子
+                    localStorage.removeItem('habitTasks'); 
                 } else {
                     tasks = lfTasks ||[];
                 }
@@ -154,12 +151,11 @@
                 if (!lfRecords && oldRecords) {
                     records = JSON.parse(oldRecords);
                     await localforage.setItem('habitRecords', records);
-                    localStorage.removeItem('habitRecords'); // 搬空旧房子，释放宝贵的 5MB 空间
+                    localStorage.removeItem('habitRecords'); 
                 } else {
                     records = lfRecords ||[];
                 }
 
-                // 移除 loading 动画，启动应用 UI
                 document.getElementById('loading-screen').classList.add('hidden');
                 initUI();
 
@@ -189,7 +185,6 @@
             renderRecords();
         }
 
-        // --- 2. 切换打卡周期 ---
         function toggleDay(dayValue, btnElement) {
             if (selectedDays.includes(dayValue)) {
                 if (selectedDays.length === 1) return alert('至少需要选择一天打卡哦！');
@@ -201,7 +196,6 @@
             }
         }
 
-        // --- 3. 创建习惯 ---
         function createTask() {
             const name = document.getElementById('task-name').value.trim();
             const startDate = document.getElementById('start-date').value;
@@ -212,13 +206,13 @@
             const newTask = {
                 id: 'task_' + Date.now(),
                 name: name,
-                cycleDays: [...selectedDays],
+                cycleDays:[...selectedDays],
                 startDate: startDate,
                 createTime: new Date().getTime()
             };
 
             tasks.push(newTask);
-            localforage.setItem('habitTasks', tasks); // 异步静默存入大数据库
+            localforage.setItem('habitTasks', tasks); 
             
             document.getElementById('task-name').value = '';
             alert('习惯创建成功！');
@@ -360,7 +354,7 @@
         function deleteTask(taskId) {
             if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
                 tasks = tasks.filter(t => t.id !== taskId);
-                localforage.setItem('habitTasks', tasks); // 更新大数据库
+                localforage.setItem('habitTasks', tasks); 
                 renderTasks();
             }
         }
@@ -369,7 +363,7 @@
         function clearAllData() {
             if(confirm('⚠️ 危险操作：作为产品经理测试，你确定要清空所有的习惯和打卡记录吗？清空后将无法恢复！')) {
                 localforage.clear().then(() => {
-                    localStorage.clear(); // 顺便也扫荡一下旧仓库
+                    localStorage.clear(); 
                     alert('数据已全部清空！即将刷新页面。');
                     location.reload();
                 });
@@ -453,7 +447,7 @@
             reader.readAsDataURL(file);
         }
 
-        // --- 6. 提交打卡 (存入大容量数据库) ---
+        // --- 6. 提交打卡 ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -485,7 +479,6 @@
 
                 records.unshift(newRecord); 
                 
-                // 【核心改变】使用 localforage 异步保存到 IndexedDB
                 localforage.setItem('habitRecords', records).then(() => {
                     closeModal();
                     historyDateObj = new Date(viewDateObj);
@@ -493,8 +486,8 @@
                     renderRecords();
                 }).catch((error) => {
                     console.error(error);
-                    alert('哎呀，可能是你的手机存储空间真的完全满了，或者无痕模式禁用了数据库！');
-                    records.shift(); // 存失败了就回退
+                    alert('保存失败，请重试！');
+                    records.shift(); 
                     btn.textContent = '确认打卡';
                     btn.disabled = false;
                     btn.className = 'flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]';
@@ -507,6 +500,25 @@
                 });
             } else {
                 saveRecord(null);
+            }
+        }
+
+        // --- 【新增功能】删除特定打卡记录 ---
+        function deleteRecord(recordId) {
+            if(confirm('确定要删除这条打卡记录吗？删除后不可恢复哦！')) {
+                // 1. 从数组中过滤掉要删除的记录
+                records = records.filter(r => r.id !== recordId);
+                
+                // 2. 更新到数据库
+                localforage.setItem('habitRecords', records).then(() => {
+                    // 3. 重新渲染记录墙
+                    renderRecords();
+                    // 4. 重新渲染待办列表（如果删除了今天的记录，待办列表会自动变成“去打卡”状态）
+                    renderTasks();
+                }).catch(err => {
+                    console.error('删除失败:', err);
+                    alert('删除失败，请重试！');
+                });
             }
         }
 
@@ -541,7 +553,7 @@
 
             dailyRecords.forEach(record => {
                 const div = document.createElement('div');
-                div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
+                div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative';
                 
                 let imageHtml = '';
                 if (record.image) {
@@ -558,7 +570,11 @@
                 div.innerHTML = `
                     <div class="relative overflow-hidden bg-gray-200">
                         ${imageHtml}
-                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white">
+                        <!-- 【新增】删除记录的垃圾桶小按钮 -->
+                        <button onclick="deleteRecord('${record.id}')" class="absolute top-2 right-2 bg-black/40 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs backdrop-blur-sm transition-colors z-10 opacity-80 hover:opacity-100 shadow-sm" title="删除该记录">
+                            🗑️
+                        </button>
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 text-white pointer-events-none">
                             <p class="text-xs font-bold drop-shadow-md">${record.taskName}</p>
                         </div>
                     </div>
