@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V5.0</title>
+    <title>艺数联动打卡系统 V6.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,13 +18,13 @@
         
         <!-- 顶部导航条 -->
         <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-bold text-gray-800">艺数联动打卡系统</h1>
+            <h1 class="text-xl font-bold text-gray-800">艺数清单</h1>
             <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
         </div>
 
         <div class="p-5 space-y-6">
             
-            <!-- 模块 1：创建习惯 (保留原有所有功能) -->
+            <!-- 模块 1：创建习惯 -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                 <div class="mb-5 flex gap-2">
                     <input type="text" id="task-name" class="flex-1 bg-[#f8faf8] border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4caf50]" placeholder="例如早起、背单词等">
@@ -48,7 +48,6 @@
 
             <!-- 模块 2：待办区 -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
-                <!-- 待办日期切换器 -->
                 <div class="flex items-center justify-between mb-4">
                     <button onclick="changeDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
                     <div class="text-center">
@@ -57,16 +56,11 @@
                     </div>
                     <button onclick="changeDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
                 </div>
-                
-                <!-- 任务列表 -->
-                <div id="today-tasks-list" class="space-y-3">
-                    <!-- 动态渲染在此处 -->
-                </div>
+                <div id="today-tasks-list" class="space-y-3"></div>
             </div>
 
-            <!-- 模块 3：打卡记录墙 (V5.0 新增：按日期分区切换) -->
+            <!-- 模块 3：打卡记录墙 -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
-                <!-- 记录墙日期切换器 -->
                 <div class="flex items-center justify-between mb-4">
                     <button onclick="changeHistoryDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
                     <div class="text-center">
@@ -75,10 +69,7 @@
                     </div>
                     <button onclick="changeHistoryDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
                 </div>
-
-                <div id="history-list" class="grid grid-cols-2 gap-3">
-                    <!-- 历史记录展示 -->
-                </div>
+                <div id="history-list" class="grid grid-cols-2 gap-3"></div>
             </div>
         </div>
     </div>
@@ -89,7 +80,6 @@
             <h3 class="text-xl font-bold mb-4 text-center text-gray-800" id="modal-title">进行打卡</h3>
             <input type="hidden" id="current-task-id">
             
-            <!-- 上传照片区域 -->
             <div class="mb-4 border-2 border-dashed border-[#a5d6a7] rounded-xl p-4 text-center bg-[#f1f8e9]">
                 <label for="photo-upload" class="cursor-pointer block">
                     <div class="text-[#4caf50] mb-2 text-3xl">📷</div>
@@ -99,14 +89,14 @@
                 <img id="image-preview" class="hidden mt-3 rounded-lg max-h-32 mx-auto object-cover" />
             </div>
 
-            <!-- 文字输入区域 -->
             <div class="mb-6">
                 <textarea id="checkin-note" rows="2" class="w-full bg-[#f8faf8] border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#4caf50]" placeholder="写点打卡心得吧（例如：已经完成作业啦！）"></textarea>
             </div>
 
             <div class="flex gap-3">
                 <button onclick="closeModal()" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200">取消</button>
-                <button onclick="submitCheckIn()" class="flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]">确认打卡</button>
+                <!-- 增加了 id，方便操作按钮状态 -->
+                <button id="submit-btn" onclick="submitCheckIn()" class="flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]">确认打卡</button>
             </div>
         </div>
     </div>
@@ -124,8 +114,8 @@
         let tasks = JSON.parse(localStorage.getItem('habitTasks')) ||[];
         let records = JSON.parse(localStorage.getItem('habitRecords')) ||[];
         
-        let viewDateObj = new Date();        // 待办列表的查看日期
-        let historyDateObj = new Date();     // 记录墙的查看日期 【V5.0新增】
+        let viewDateObj = new Date();        
+        let historyDateObj = new Date();     
 
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -187,13 +177,11 @@
             renderTasks();
         }
 
-        // 待办日期切换逻辑
         function changeDate(offset) {
             viewDateObj.setDate(viewDateObj.getDate() + offset);
             renderTasks();
         }
 
-        // 记录墙日期切换逻辑 【V5.0新增】
         function changeHistoryDate(offset) {
             historyDateObj.setDate(historyDateObj.getDate() + offset);
             renderRecords();
@@ -322,7 +310,6 @@
             });
         }
 
-        // 删除习惯逻辑
         function deleteTask(taskId) {
             if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
                 tasks = tasks.filter(t => t.id !== taskId);
@@ -341,6 +328,12 @@
             document.getElementById('image-preview').classList.add('hidden');
             document.getElementById('image-preview').src = '';
             document.getElementById('checkin-note').value = ''; 
+            
+            // 重置按钮状态
+            const btn = document.getElementById('submit-btn');
+            btn.textContent = '确认打卡';
+            btn.disabled = false;
+            btn.className = 'flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]';
 
             document.getElementById('checkin-modal').classList.remove('hidden');
         }
@@ -362,7 +355,55 @@
             }
         }
 
-        // --- 6. 提交打卡 ---
+        // 【新增：核心的前端图片压缩算法，防止超出 5MB 限制】
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // 创建隐形的 canvas 画布
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // 设定最大宽度或高度（800px 对打卡图片足够清晰了）
+                    const MAX_WIDTH = 800;
+                    const MAX_HEIGHT = 800;
+                    let width = img.width;
+                    let height = img.height;
+
+                    // 计算等比缩放
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // 铺设白色背景（防止透明的 PNG 变成黑色）
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 将图片画在缩小后的画布上
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 压缩质量：0.6 (肉眼看不出太大差别，但体积会极小)
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                    callback(compressedBase64);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- 6. 提交打卡 (V6.0 接入压缩逻辑) ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -372,6 +413,12 @@
             if (!file && !note) {
                 return alert('请至少上传一张照片或写一句心得哦！');
             }
+
+            // 防止重复点击造成卡顿
+            const btn = document.getElementById('submit-btn');
+            btn.textContent = '处理中...';
+            btn.disabled = true;
+            btn.className = 'flex-1 py-3 bg-gray-400 text-white rounded-full font-bold';
 
             const saveRecord = (imageBase64) => {
                 const task = tasks.find(t => t.id === taskId);
@@ -393,38 +440,37 @@
                     localStorage.setItem('habitRecords', JSON.stringify(records));
                     closeModal();
                     
-                    // 打卡成功后，自动将历史记录墙的日期也切换到当前打卡日期，方便用户立刻看到刚打卡的内容
                     historyDateObj = new Date(viewDateObj);
                     
                     renderTasks(); 
                     renderRecords();
                 } catch (error) {
-                    alert('存储失败，可能是图片过大超出了浏览器限制！');
+                    alert('哎呀，可能是你存的记录太多了。你可以在设置里清理一下浏览器缓存！');
                     records.shift();
+                    btn.textContent = '确认打卡';
+                    btn.disabled = false;
+                    btn.className = 'flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]';
                 }
             };
 
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    saveRecord(e.target.result);
-                };
-                reader.readAsDataURL(file); 
+                // 调用压缩函数，压缩完成后再进行保存
+                compressImage(file, function(compressedResult) {
+                    saveRecord(compressedResult);
+                });
             } else {
                 saveRecord(null);
             }
         }
 
-        // --- 7. 渲染打卡照片墙 (V5.0：按日期过滤显示) ---
+        // --- 7. 渲染打卡照片墙 ---
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
 
-            // 获取当前选择的查看记录日期
             const todayStr = getStrFromDate(new Date());
             const viewHistoryStr = getStrFromDate(historyDateObj);
 
-            // 更新记录墙的标题UI
             const titleEl = document.getElementById('history-date-title');
             const subTitleEl = document.getElementById('history-date-subtitle');
             subTitleEl.textContent = viewHistoryStr;
@@ -439,7 +485,6 @@
                 titleEl.textContent = `${historyDateObj.getMonth()+1}月${historyDateObj.getDate()}日 记录`;
             }
 
-            // 【核心逻辑】：只过滤出日期等于所选日期的打卡记录
             const dailyRecords = records.filter(r => r.date === viewHistoryStr);
 
             if (dailyRecords.length === 0) {
@@ -447,7 +492,6 @@
                 return;
             }
 
-            // 只渲染当前选中日期的记录
             dailyRecords.forEach(record => {
                 const div = document.createElement('div');
                 div.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col';
