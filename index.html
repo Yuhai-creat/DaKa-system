@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V6.0</title>
+    <title>艺数联动打卡系统 V7.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 【核心新增】引入 localForage 库，用于调用浏览器底层大容量数据库 IndexedDB -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <style>
         .day-btn { transition: all 0.2s ease; }
-        /* 隐藏滚动条 */
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
@@ -18,8 +19,18 @@
         
         <!-- 顶部导航条 -->
         <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-bold text-gray-800">艺数清单</h1>
-            <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
+            <h1 class="text-xl font-bold text-gray-800">艺数清单2.0</h1>
+            <div class="flex items-center gap-3">
+                <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
+                <!-- 【新增】一键清空测试数据按钮 -->
+                <button onclick="clearAllData()" class="text-xl text-gray-400 hover:text-red-500 transition-colors" title="清空所有测试数据">⚙️</button>
+            </div>
+        </div>
+
+        <!-- 页面加载时的 Loading 遮罩 -->
+        <div id="loading-screen" class="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#4caf50] border-t-transparent mb-3"></div>
+            <p class="text-gray-500 text-sm">数据库升级与加载中...</p>
         </div>
 
         <div class="p-5 space-y-6">
@@ -95,7 +106,6 @@
 
             <div class="flex gap-3">
                 <button onclick="closeModal()" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-full font-bold hover:bg-gray-200">取消</button>
-                <!-- 增加了 id，方便操作按钮状态 -->
                 <button id="submit-btn" onclick="submitCheckIn()" class="flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]">确认打卡</button>
             </div>
         </div>
@@ -111,14 +121,52 @@
         ];
         
         let selectedDays =[1, 2, 3, 4, 5, 6, 0]; 
-        let tasks = JSON.parse(localStorage.getItem('habitTasks')) ||[];
-        let records = JSON.parse(localStorage.getItem('habitRecords')) ||[];
+        let tasks =[];
+        let records =[];
         
         let viewDateObj = new Date();        
         let historyDateObj = new Date();     
 
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+
+        // --- 0. 异步数据库初始化与数据迁移 ---
+        async function initData() {
+            try {
+                // 读取新数据库（大容量 IndexedDB）
+                let lfTasks = await localforage.getItem('habitTasks');
+                let lfRecords = await localforage.getItem('habitRecords');
+
+                // 读取旧数据库（容量极小的 localStorage）
+                let oldTasks = localStorage.getItem('habitTasks');
+                let oldRecords = localStorage.getItem('habitRecords');
+
+                // 如果新库是空的，但旧库有东西，执行【自动搬家】
+                if (!lfTasks && oldTasks) {
+                    tasks = JSON.parse(oldTasks);
+                    await localforage.setItem('habitTasks', tasks);
+                    localStorage.removeItem('habitTasks'); // 搬空旧房子
+                } else {
+                    tasks = lfTasks ||[];
+                }
+
+                if (!lfRecords && oldRecords) {
+                    records = JSON.parse(oldRecords);
+                    await localforage.setItem('habitRecords', records);
+                    localStorage.removeItem('habitRecords'); // 搬空旧房子，释放宝贵的 5MB 空间
+                } else {
+                    records = lfRecords ||[];
+                }
+
+                // 移除 loading 动画，启动应用 UI
+                document.getElementById('loading-screen').classList.add('hidden');
+                initUI();
+
+            } catch (err) {
+                console.error('数据库初始化失败:', err);
+                alert('数据库加载失败，请刷新重试！');
+            }
         }
 
         // --- 1. 初始化页面 UI ---
@@ -170,7 +218,7 @@
             };
 
             tasks.push(newTask);
-            localStorage.setItem('habitTasks', JSON.stringify(tasks));
+            localforage.setItem('habitTasks', tasks); // 异步静默存入大数据库
             
             document.getElementById('task-name').value = '';
             alert('习惯创建成功！');
@@ -263,7 +311,6 @@
             attachSwipeListeners();
         }
 
-        // 左滑删除事件监听
         function attachSwipeListeners() {
             const cards = document.querySelectorAll('.task-card');
             cards.forEach(card => {
@@ -313,8 +360,19 @@
         function deleteTask(taskId) {
             if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
                 tasks = tasks.filter(t => t.id !== taskId);
-                localStorage.setItem('habitTasks', JSON.stringify(tasks));
+                localforage.setItem('habitTasks', tasks); // 更新大数据库
                 renderTasks();
+            }
+        }
+
+        // --- 清空所有数据的测试工具 ---
+        function clearAllData() {
+            if(confirm('⚠️ 危险操作：作为产品经理测试，你确定要清空所有的习惯和打卡记录吗？清空后将无法恢复！')) {
+                localforage.clear().then(() => {
+                    localStorage.clear(); // 顺便也扫荡一下旧仓库
+                    alert('数据已全部清空！即将刷新页面。');
+                    location.reload();
+                });
             }
         }
 
@@ -329,7 +387,6 @@
             document.getElementById('image-preview').src = '';
             document.getElementById('checkin-note').value = ''; 
             
-            // 重置按钮状态
             const btn = document.getElementById('submit-btn');
             btn.textContent = '确认打卡';
             btn.disabled = false;
@@ -355,23 +412,20 @@
             }
         }
 
-        // 【新增：核心的前端图片压缩算法，防止超出 5MB 限制】
+        // 前端图片压缩算法
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    // 创建隐形的 canvas 画布
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
 
-                    // 设定最大宽度或高度（800px 对打卡图片足够清晰了）
                     const MAX_WIDTH = 800;
                     const MAX_HEIGHT = 800;
                     let width = img.width;
                     let height = img.height;
 
-                    // 计算等比缩放
                     if (width > height) {
                         if (width > MAX_WIDTH) {
                             height *= MAX_WIDTH / width;
@@ -387,14 +441,10 @@
                     canvas.width = width;
                     canvas.height = height;
 
-                    // 铺设白色背景（防止透明的 PNG 变成黑色）
                     ctx.fillStyle = '#fff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // 将图片画在缩小后的画布上
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // 压缩质量：0.6 (肉眼看不出太大差别，但体积会极小)
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                     callback(compressedBase64);
                 };
@@ -403,7 +453,7 @@
             reader.readAsDataURL(file);
         }
 
-        // --- 6. 提交打卡 (V6.0 接入压缩逻辑) ---
+        // --- 6. 提交打卡 (存入大容量数据库) ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -414,9 +464,8 @@
                 return alert('请至少上传一张照片或写一句心得哦！');
             }
 
-            // 防止重复点击造成卡顿
             const btn = document.getElementById('submit-btn');
-            btn.textContent = '处理中...';
+            btn.textContent = '保存中...';
             btn.disabled = true;
             btn.className = 'flex-1 py-3 bg-gray-400 text-white rounded-full font-bold';
 
@@ -436,25 +485,23 @@
 
                 records.unshift(newRecord); 
                 
-                try {
-                    localStorage.setItem('habitRecords', JSON.stringify(records));
+                // 【核心改变】使用 localforage 异步保存到 IndexedDB
+                localforage.setItem('habitRecords', records).then(() => {
                     closeModal();
-                    
                     historyDateObj = new Date(viewDateObj);
-                    
                     renderTasks(); 
                     renderRecords();
-                } catch (error) {
-                    alert('哎呀，可能是你存的记录太多了。你可以在设置里清理一下浏览器缓存！');
-                    records.shift();
+                }).catch((error) => {
+                    console.error(error);
+                    alert('哎呀，可能是你的手机存储空间真的完全满了，或者无痕模式禁用了数据库！');
+                    records.shift(); // 存失败了就回退
                     btn.textContent = '确认打卡';
                     btn.disabled = false;
                     btn.className = 'flex-1 py-3 bg-[#4caf50] text-white rounded-full font-bold hover:bg-[#43a047]';
-                }
+                });
             };
 
             if (file) {
-                // 调用压缩函数，压缩完成后再进行保存
                 compressImage(file, function(compressedResult) {
                     saveRecord(compressedResult);
                 });
@@ -526,7 +573,7 @@
         }
 
         // --- 启动应用 ---
-        window.onload = initUI;
+        window.onload = initData;
     </script>
 </body>
 </html>
