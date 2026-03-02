@@ -3,34 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺数联动打卡系统 V8.0</title>
+    <title>艺联清单 V9.0</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 localForage 库，用于调用浏览器底层大容量数据库 IndexedDB -->
+    <!-- 引入 localForage 库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <style>
         .day-btn { transition: all 0.2s ease; }
         ::-webkit-scrollbar { display: none; }
+        
+        /* 【新增】闪屏元素的进场动画 */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up {
+            animation: fadeUp 0.8s ease-out forwards;
+        }
+        /* 利用动画延迟，实现依次浮现的效果 */
+        .delay-100 { animation-delay: 150ms; }
+        .delay-200 { animation-delay: 300ms; }
     </style>
 </head>
 <body class="bg-[#f5f7f5] font-sans min-h-screen text-gray-800 pb-10">
 
+    <!-- 【核心新增】品牌闪屏页面 (Splash Screen) -->
+    <!-- 设置了 z-[9999] 保证它永远在最上层，加载完后会自动淡出 -->
+    <div id="splash-screen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out">
+        <!-- Logo 图片（请确保目录下有 logo.png） -->
+        <img src="/img/logo.jpg" alt="艺数清单 Logo" class="w-40 h-40 mb-8 object-contain animate-fade-up" onerror="this.style.display='none'; alert('提示：记得把 Logo 图片重命名为 logo.png 并放到同目录下哦！');">
+        
+        <!-- Slogan 文字，高度还原参考图的排版和颜色 -->
+        <h1 class="text-4xl font-bold text-[#00a651] mb-5 tracking-[0.2em] pl-2 animate-fade-up delay-100 opacity-0">艺联清单</h1>
+        <h2 class="text-2xl font-medium text-[#00a651] tracking-[0.1em] animate-fade-up delay-200 opacity-0">您的时间管家</h2>
+    </div>
+
+    <!-- 主界面内容 (放在闪屏下方，等闪屏消失就露出来了) -->
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg sm:rounded-2xl sm:min-h-[800px] sm:mt-6 sm:overflow-hidden relative">
         
         <!-- 顶部导航条 -->
         <div class="bg-[#eaf5ec] p-4 flex justify-between items-center sticky top-0 z-20">
-            <h1 class="text-xl font-bold text-gray-800">艺联清单2.0</h1>
+            <h1 class="text-xl font-bold text-gray-800">艺联清单</h1>
             <div class="flex items-center gap-3">
                 <div class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1 rounded-full">当前：<span id="header-date"></span></div>
-                <!-- 一键清空测试数据按钮 -->
                 <button onclick="clearAllData()" class="text-xl text-gray-400 hover:text-red-500 transition-colors" title="清空所有测试数据">⚙️</button>
             </div>
-        </div>
-
-        <!-- 页面加载时的 Loading 遮罩 -->
-        <div id="loading-screen" class="absolute inset-0 bg-white z-50 flex flex-col items-center justify-center">
-            <div class="animate-spin rounded-full h-10 w-10 border-4 border-[#4caf50] border-t-transparent mb-3"></div>
-            <p class="text-gray-500 text-sm">数据库升级与加载中...</p>
         </div>
 
         <div class="p-5 space-y-6">
@@ -131,9 +148,13 @@
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
 
-        // --- 0. 异步数据库初始化与数据迁移 ---
+        // --- 0. 异步数据库初始化与【闪屏控制逻辑】 ---
         async function initData() {
-            try {
+            // 【新增】创建一个 2.5 秒的强制倒计时，保证闪屏停留时间，让品牌充分曝光
+            const minSplashTime = new Promise(resolve => setTimeout(resolve, 2500));
+            
+            // 数据库读取逻辑包裹在一个异步函数里
+            const loadData = (async () => {
                 let lfTasks = await localforage.getItem('habitTasks');
                 let lfRecords = await localforage.getItem('habitRecords');
 
@@ -155,9 +176,22 @@
                 } else {
                     records = lfRecords ||[];
                 }
+            })();
 
-                document.getElementById('loading-screen').classList.add('hidden');
+            try {
+                // 等待【数据读取】和【2.5秒倒计时】都彻底完成
+                await Promise.all([loadData, minSplashTime]);
+
+                // 数据就位后，先在背后默默把列表渲染好
                 initUI();
+
+                // 最后，优雅地淡出并移除闪屏
+                const splash = document.getElementById('splash-screen');
+                splash.style.opacity = '0'; // 触发 CSS fade-out 动画
+                
+                setTimeout(() => {
+                    splash.style.display = 'none'; // 彻底隐藏，不阻挡点击
+                }, 700); // 700ms 对应 CSS 的 duration-700
 
             } catch (err) {
                 console.error('数据库初始化失败:', err);
@@ -229,7 +263,6 @@
             renderRecords();
         }
 
-        // --- 4. 渲染任务列表 ---
         function renderTasks() {
             const listDiv = document.getElementById('today-tasks-list');
             listDiv.innerHTML = '';
@@ -359,7 +392,6 @@
             }
         }
 
-        // --- 清空所有数据的测试工具 ---
         function clearAllData() {
             if(confirm('⚠️ 危险操作：作为产品经理测试，你确定要清空所有的习惯和打卡记录吗？清空后将无法恢复！')) {
                 localforage.clear().then(() => {
@@ -370,7 +402,6 @@
             }
         }
 
-        // --- 5. 弹窗与照片预览 ---
         function openModal(taskId, taskName) {
             document.getElementById('current-task-id').value = taskId;
             const isPast = getStrFromDate(viewDateObj) < getStrFromDate(new Date());
@@ -406,7 +437,6 @@
             }
         }
 
-        // 前端图片压缩算法
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -447,7 +477,6 @@
             reader.readAsDataURL(file);
         }
 
-        // --- 6. 提交打卡 ---
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -503,17 +532,12 @@
             }
         }
 
-        // --- 【新增功能】删除特定打卡记录 ---
         function deleteRecord(recordId) {
             if(confirm('确定要删除这条打卡记录吗？删除后不可恢复哦！')) {
-                // 1. 从数组中过滤掉要删除的记录
                 records = records.filter(r => r.id !== recordId);
                 
-                // 2. 更新到数据库
                 localforage.setItem('habitRecords', records).then(() => {
-                    // 3. 重新渲染记录墙
                     renderRecords();
-                    // 4. 重新渲染待办列表（如果删除了今天的记录，待办列表会自动变成“去打卡”状态）
                     renderTasks();
                 }).catch(err => {
                     console.error('删除失败:', err);
@@ -522,7 +546,6 @@
             }
         }
 
-        // --- 7. 渲染打卡照片墙 ---
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
@@ -570,7 +593,6 @@
                 div.innerHTML = `
                     <div class="relative overflow-hidden bg-gray-200">
                         ${imageHtml}
-                        <!-- 【新增】删除记录的垃圾桶小按钮 -->
                         <button onclick="deleteRecord('${record.id}')" class="absolute top-2 right-2 bg-black/40 hover:bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs backdrop-blur-sm transition-colors z-10 opacity-80 hover:opacity-100 shadow-sm" title="删除该记录">
                             🗑️
                         </button>
