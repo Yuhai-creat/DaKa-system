@@ -151,7 +151,7 @@
         // --- 0. 异步数据库初始化与【闪屏控制逻辑】 ---
         async function initData() {
             // 【新增】创建一个 2.5 秒的强制倒计时，保证闪屏停留时间，让品牌充分曝光
-            const minSplashTime = new Promise(resolve => setTimeout(resolve, 2500));
+            const minSplashTime = new Promise(resolve => setTimeout(resolve, 1700));
             
             // 数据库读取逻辑包裹在一个异步函数里
             const loadData = (async () => {
