@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V9.0</title>
+    <title>艺联清单 V10.1</title>
+    
+    <!-- 强制浏览器最高优先级预加载 Logo -->
+    <link rel="preload" href="./logo.png" as="image">
+
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 localForage 库 -->
@@ -12,7 +16,7 @@
         .day-btn { transition: all 0.2s ease; }
         ::-webkit-scrollbar { display: none; }
         
-        /* 【新增】闪屏元素的进场动画 */
+        /* 闪屏元素的进场动画 */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -20,25 +24,26 @@
         .animate-fade-up {
             animation: fadeUp 0.8s ease-out forwards;
         }
-        /* 利用动画延迟，实现依次浮现的效果 */
         .delay-100 { animation-delay: 150ms; }
         .delay-200 { animation-delay: 300ms; }
+        
+        /* 让原生日历输入框自带的图标更加契合我们的样式，或者隐藏 */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body class="bg-[#f5f7f5] font-sans min-h-screen text-gray-800 pb-10">
 
-    <!-- 【核心新增】品牌闪屏页面 (Splash Screen) -->
-    <!-- 设置了 z-[9999] 保证它永远在最上层，加载完后会自动淡出 -->
+    <!-- 品牌闪屏页面 -->
     <div id="splash-screen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out">
-        <!-- Logo 图片（请确保目录下有 logo.png） -->
-        <img src="img/logo.jpg" alt="艺数清单 Logo" class="w-40 h-40 mb-8 object-contain animate-fade-up" onerror="this.style.display='none'; alert('提示：记得把 Logo 图片重命名为 logo.png 并放到同目录下哦！');">
-        
-        <!-- Slogan 文字，高度还原参考图的排版和颜色 -->
+        <img src="img/logo.jpg" alt="艺数清单 Logo" class="w-40 h-40 mb-8 object-contain animate-fade-up" onerror="this.style.display='none';">
         <h1 class="text-4xl font-bold text-[#00a651] mb-5 tracking-[0.2em] pl-2 animate-fade-up delay-100 opacity-0">艺联清单</h1>
         <h2 class="text-2xl font-medium text-[#00a651] tracking-[0.1em] animate-fade-up delay-200 opacity-0">您的时间管家</h2>
     </div>
 
-    <!-- 主界面内容 (放在闪屏下方，等闪屏消失就露出来了) -->
+    <!-- 主界面内容 -->
     <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg sm:rounded-2xl sm:min-h-[800px] sm:mt-6 sm:overflow-hidden relative">
         
         <!-- 顶部导航条 -->
@@ -74,28 +79,21 @@
                 </button>
             </div>
 
-            <!-- 模块 2：待办区 -->
+            <!-- 模块 2：待办区 (V10.1 优化：去除透明遮罩，直接使用原生交互) -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
-                    <button onclick="changeDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
-                    <div class="text-center">
-                        <h2 class="text-lg font-bold text-gray-800" id="view-date-title">今日待办</h2>
-                        <span class="text-xs text-gray-400" id="view-date-subtitle"></span>
-                    </div>
-                    <button onclick="changeDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
+                    <h2 class="text-lg font-bold text-gray-800" id="view-date-title">今日待办</h2>
+                    <!-- 直接给原生的 input 披上好看的外衣，保证 100% 的触控灵敏度 -->
+                    <input type="date" id="task-date-picker" onchange="syncDate(this.value)" class="bg-[#eaf5ec] text-[#2e7d32] px-3 py-1.5 rounded-full text-sm font-bold cursor-pointer hover:bg-[#c8e6c9] transition-colors shadow-sm border-none outline-none text-center">
                 </div>
                 <div id="today-tasks-list" class="space-y-3"></div>
             </div>
 
-            <!-- 模块 3：打卡记录墙 -->
+            <!-- 模块 3：打卡记录墙 (V10.1 优化：去除透明遮罩，直接使用原生交互) -->
             <div class="bg-[#fcfdfc] p-4 rounded-xl border border-gray-100 shadow-sm">
                 <div class="flex items-center justify-between mb-4">
-                    <button onclick="changeHistoryDate(-1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">◀</button>
-                    <div class="text-center">
-                        <h2 class="text-lg font-bold text-gray-800" id="history-date-title">今日记录墙</h2>
-                        <span class="text-xs text-gray-400" id="history-date-subtitle"></span>
-                    </div>
-                    <button onclick="changeHistoryDate(1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-[#4caf50] hover:bg-green-50">▶</button>
+                    <h2 class="text-lg font-bold text-gray-800" id="history-date-title">今日记录墙</h2>
+                    <input type="date" id="record-date-picker" onchange="syncDate(this.value)" class="bg-[#eaf5ec] text-[#2e7d32] px-3 py-1.5 rounded-full text-sm font-bold cursor-pointer hover:bg-[#c8e6c9] transition-colors shadow-sm border-none outline-none text-center">
                 </div>
                 <div id="history-list" class="grid grid-cols-2 gap-3"></div>
             </div>
@@ -141,19 +139,17 @@
         let tasks =[];
         let records =[];
         
-        let viewDateObj = new Date();        
-        let historyDateObj = new Date();     
+        // 全局查看日期同步状态
+        let globalViewDate = new Date();        
 
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
 
-        // --- 0. 异步数据库初始化与【闪屏控制逻辑】 ---
+        // --- 0. 异步数据库初始化与闪屏控制 ---
         async function initData() {
-            // 【新增】创建一个 2.5 秒的强制倒计时，保证闪屏停留时间，让品牌充分曝光
-            const minSplashTime = new Promise(resolve => setTimeout(resolve, 1700));
+            const minSplashTime = new Promise(resolve => setTimeout(resolve, 2500));
             
-            // 数据库读取逻辑包裹在一个异步函数里
             const loadData = (async () => {
                 let lfTasks = await localforage.getItem('habitTasks');
                 let lfRecords = await localforage.getItem('habitRecords');
@@ -179,19 +175,14 @@
             })();
 
             try {
-                // 等待【数据读取】和【2.5秒倒计时】都彻底完成
                 await Promise.all([loadData, minSplashTime]);
-
-                // 数据就位后，先在背后默默把列表渲染好
                 initUI();
 
-                // 最后，优雅地淡出并移除闪屏
                 const splash = document.getElementById('splash-screen');
-                splash.style.opacity = '0'; // 触发 CSS fade-out 动画
-                
+                splash.style.opacity = '0'; 
                 setTimeout(() => {
-                    splash.style.display = 'none'; // 彻底隐藏，不阻挡点击
-                }, 700); // 700ms 对应 CSS 的 duration-700
+                    splash.style.display = 'none'; 
+                }, 700); 
 
             } catch (err) {
                 console.error('数据库初始化失败:', err);
@@ -215,6 +206,18 @@
                 container.appendChild(btn);
             });
 
+            globalViewDate = new Date();
+            renderTasks();
+            renderRecords();
+        }
+
+        // 全局日期同步函数
+        function syncDate(val) {
+            if (!val) return;
+            const [y, m, d] = val.split('-');
+            globalViewDate = new Date(y, m - 1, d);
+            
+            // 同时刷新待办列表和记录墙，实现联动
             renderTasks();
             renderRecords();
         }
@@ -253,36 +256,27 @@
             renderTasks();
         }
 
-        function changeDate(offset) {
-            viewDateObj.setDate(viewDateObj.getDate() + offset);
-            renderTasks();
-        }
-
-        function changeHistoryDate(offset) {
-            historyDateObj.setDate(historyDateObj.getDate() + offset);
-            renderRecords();
-        }
-
         function renderTasks() {
             const listDiv = document.getElementById('today-tasks-list');
             listDiv.innerHTML = '';
 
             const todayStr = getStrFromDate(new Date());
-            const viewDateStr = getStrFromDate(viewDateObj);
-            const viewDayOfWeek = viewDateObj.getDay();
+            const viewDateStr = getStrFromDate(globalViewDate);
+            const viewDayOfWeek = globalViewDate.getDay();
+
+            // V10.1: 直接更新原生 input 的 value 即可
+            document.getElementById('task-date-picker').value = viewDateStr;
 
             const titleEl = document.getElementById('view-date-title');
-            const subTitleEl = document.getElementById('view-date-subtitle');
-            subTitleEl.textContent = viewDateStr;
-            
             const yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            
             if (viewDateStr === todayStr) {
                 titleEl.textContent = '今日待办';
             } else if (viewDateStr === getStrFromDate(yesterdayDate)) {
                 titleEl.textContent = '昨日待办';
             } else {
-                titleEl.textContent = `${viewDateObj.getMonth()+1}月${viewDateObj.getDate()}日 待办`;
+                titleEl.textContent = `${globalViewDate.getMonth()+1}月${globalViewDate.getDate()}日 待办`;
             }
 
             const todaysTasks = tasks.filter(task => {
@@ -404,7 +398,7 @@
 
         function openModal(taskId, taskName) {
             document.getElementById('current-task-id').value = taskId;
-            const isPast = getStrFromDate(viewDateObj) < getStrFromDate(new Date());
+            const isPast = getStrFromDate(globalViewDate) < getStrFromDate(new Date());
             document.getElementById('modal-title').textContent = isPast ? `补卡: ${taskName}` : `打卡: ${taskName}`;
             
             document.getElementById('photo-upload').value = ''; 
@@ -494,7 +488,7 @@
 
             const saveRecord = (imageBase64) => {
                 const task = tasks.find(t => t.id === taskId);
-                const checkInDateStr = getStrFromDate(viewDateObj);
+                const checkInDateStr = getStrFromDate(globalViewDate);
                 
                 const newRecord = {
                     id: 'rec_' + Date.now(),
@@ -510,7 +504,6 @@
                 
                 localforage.setItem('habitRecords', records).then(() => {
                     closeModal();
-                    historyDateObj = new Date(viewDateObj);
                     renderTasks(); 
                     renderRecords();
                 }).catch((error) => {
@@ -551,20 +544,21 @@
             historyListDiv.innerHTML = '';
 
             const todayStr = getStrFromDate(new Date());
-            const viewHistoryStr = getStrFromDate(historyDateObj);
+            const viewHistoryStr = getStrFromDate(globalViewDate);
+
+            // V10.1: 直接更新原生 input 的 value 即可
+            document.getElementById('record-date-picker').value = viewHistoryStr;
 
             const titleEl = document.getElementById('history-date-title');
-            const subTitleEl = document.getElementById('history-date-subtitle');
-            subTitleEl.textContent = viewHistoryStr;
-            
             const yesterdayDate = new Date();
             yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            
             if (viewHistoryStr === todayStr) {
                 titleEl.textContent = '今日记录墙';
             } else if (viewHistoryStr === getStrFromDate(yesterdayDate)) {
                 titleEl.textContent = '昨日记录墙';
             } else {
-                titleEl.textContent = `${historyDateObj.getMonth()+1}月${historyDateObj.getDate()}日 记录`;
+                titleEl.textContent = `${globalViewDate.getMonth()+1}月${globalViewDate.getDate()}日 记录`;
             }
 
             const dailyRecords = records.filter(r => r.date === viewHistoryStr);
