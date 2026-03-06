@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V12.0</title>
+    <title>艺联清单 V13.0</title>
     
     <!-- 强制浏览器最高优先级预加载 Logo -->
     <link rel="preload" href="./logo.png" as="image">
@@ -16,7 +16,7 @@
         .day-btn { transition: all 0.2s ease; }
         ::-webkit-scrollbar { display: none; }
         
-        /* 闪屏进场动画 */
+        /* 闪屏元素的进场动画 */
         @keyframes fadeUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -136,13 +136,10 @@
                     <!-- 环形进度条 -->
                     <div class="flex justify-center mb-6">
                         <div class="relative w-32 h-32">
-                            <!-- 底部灰色圆环 -->
                             <svg class="w-full h-full" viewBox="0 0 100 100">
                                 <circle cx="50" cy="50" r="40" fill="none" stroke="#eaf5ec" stroke-width="8"></circle>
-                                <!-- 绿色进度圆环 -->
                                 <circle id="progress-circle" class="progress-ring__circle" cx="50" cy="50" r="40" fill="none" stroke="#4caf50" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
                             </svg>
-                            <!-- 中心百分比 -->
                             <div class="absolute inset-0 flex items-center justify-center flex-col">
                                 <span class="text-2xl font-bold text-[#4caf50]" id="detail-percent">0%</span>
                             </div>
@@ -200,6 +197,14 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 4. 删除习惯操作区 (V13.0 新增) -->
+                <div class="pt-6 pb-4">
+                    <button onclick="deleteCurrentTask()" class="w-full bg-[#fef2f2] hover:bg-[#fee2e2] text-red-500 font-bold py-3 px-4 rounded-xl border border-red-100 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                        <span class="text-lg">🗑️</span> 删除该习惯计划
+                    </button>
+                    <p class="text-center text-[11px] text-gray-400 mt-3">删除后将不在待办列表出现，但历史记录墙仍会保留痕迹</p>
+                </div>
             </div>
         </div>
     </div>
@@ -244,7 +249,7 @@
         let records =[];
         
         let globalViewDate = new Date();        
-        let currentDetailTaskId = null; // 当前正在查看详情的任务ID
+        let currentDetailTaskId = null; 
 
         function getStrFromDate(d) {
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -352,22 +357,19 @@
             renderTasks();
         }
 
-        // ================= 【新增】详情页逻辑 =================
+        // ================= 详情页逻辑 =================
         function openTaskDetail(taskId) {
             currentDetailTaskId = taskId;
             const task = tasks.find(t => t.id === taskId);
             if(!task) return;
 
-            // 1. 切换视图
             document.getElementById('main-view').classList.replace('block', 'hidden');
             const detailView = document.getElementById('detail-view');
             detailView.classList.replace('hidden', 'flex');
             detailView.classList.add('slide-in');
 
-            // 2. 渲染头部
             document.getElementById('detail-task-name').textContent = task.name;
 
-            // 3. 计算本月进度数据
             const now = new Date();
             const todayStr = getStrFromDate(now);
             const currentMonth = now.getMonth();
@@ -385,34 +387,30 @@
                 const dStr = getStrFromDate(d);
                 const dayOfWeek = d.getDay();
 
-                // 判断是否是该任务需要打卡的日子，并且已经到了开始日期
                 if (dStr >= task.startDate && task.cycleDays.includes(dayOfWeek)) {
                     plannedThisMonth++;
                     const hasRecord = records.some(r => r.taskId === task.id && r.date === dStr);
                     if (hasRecord) {
                         actualThisMonth++;
                     } else if (dStr < todayStr) {
-                        missedThisMonth++; // 只有过去的日子没打卡才算“错过”
+                        missedThisMonth++; 
                     }
                 }
             }
 
-            // 渲染数据
             document.getElementById('detail-planned').textContent = plannedThisMonth;
             document.getElementById('detail-actual').textContent = actualThisMonth;
             document.getElementById('detail-missed').textContent = missedThisMonth;
 
-            // 环形进度条动画
             const percent = plannedThisMonth === 0 ? 0 : Math.round((actualThisMonth / plannedThisMonth) * 100);
             document.getElementById('detail-percent').textContent = `${percent}%`;
             const circle = document.getElementById('progress-circle');
-            const circumference = 251.2; // 2 * pi * 40
+            const circumference = 251.2; 
             const offset = circumference - (percent / 100) * circumference;
             setTimeout(() => {
                 circle.style.strokeDashoffset = offset;
             }, 100);
 
-            // 4. 渲染打卡日志 (专属列表)
             const logContainer = document.getElementById('detail-records-list');
             logContainer.innerHTML = '';
             const taskRecords = records.filter(r => r.taskId === task.id);
@@ -443,11 +441,9 @@
                 });
             }
 
-            // 5. 渲染总进度
             const startD = new Date(task.startDate);
             const daysSince = Math.floor((now - startD) / (1000 * 60 * 60 * 24));
             
-            // 计算最长连续天数
             let scheduledDates =[];
             let tempD = new Date(task.startDate);
             while(getStrFromDate(tempD) <= todayStr) {
@@ -456,7 +452,7 @@
                 }
                 tempD.setDate(tempD.getDate() + 1);
             }
-            scheduledDates.reverse(); // 从近到远
+            scheduledDates.reverse(); 
 
             let maxStreak = 0;
             let currentStreak = 0;
@@ -466,7 +462,7 @@
                     currentStreak++;
                     if(currentStreak > maxStreak) maxStreak = currentStreak;
                 } else {
-                    currentStreak = 0; // 一旦断签，归零
+                    currentStreak = 0; 
                 }
             }
 
@@ -482,11 +478,9 @@
             detailView.classList.replace('flex', 'hidden');
             document.getElementById('main-view').classList.replace('hidden', 'block');
             currentDetailTaskId = null;
-            // 回退时把圆环动画复位，防止下次打开没动画
             document.getElementById('progress-circle').style.strokeDashoffset = 251.2;
         }
 
-        // 详情页内的编辑名字功能
         function editDetailTaskName() {
             if(!currentDetailTaskId) return;
             const task = tasks.find(t => t.id === currentDetailTaskId);
@@ -502,10 +496,27 @@
                     localforage.setItem('habitTasks', tasks),
                     localforage.setItem('habitRecords', records)
                 ]).then(() => {
-                    // 同步更新详情页标题和主页列表
                     document.getElementById('detail-task-name').textContent = task.name;
                     renderTasks();
                     renderRecords();
+                });
+            }
+        }
+
+        // 【V13.0 新增】详情页底部专属删除功能
+        function deleteCurrentTask() {
+            if(!currentDetailTaskId) return;
+            if(confirm('确定要彻底删除这个习惯计划吗？\n\n删除后该任务将从待办列表中消失，但你在照片墙的打卡痕迹仍会保留。')) {
+                // 过滤掉当前任务
+                tasks = tasks.filter(t => t.id !== currentDetailTaskId);
+                
+                // 保存并回退到首页
+                localforage.setItem('habitTasks', tasks).then(() => {
+                    closeDetailView();
+                    renderTasks();
+                }).catch(err => {
+                    console.error('删除失败:', err);
+                    alert('删除失败，请重试！');
                 });
             }
         }
@@ -563,84 +574,24 @@
                     }
                 }
 
+                // 【V13.0 优化】移除了左滑组件，结构更纯粹
                 const div = document.createElement('div');
-                div.className = 'relative overflow-hidden rounded-xl bg-red-500'; 
-                
-                // V12.0: 左侧区域绑定 openTaskDetail 事件，取消原有的 inline edit
+                div.className = 'bg-white p-4 flex justify-between items-center rounded-xl shadow-sm border border-gray-100 transition-transform duration-300'; 
                 div.innerHTML = `
-                    <div class="absolute inset-y-0 right-0 w-24 flex items-center justify-end pr-4 text-white font-bold cursor-pointer" onclick="deleteTask('${task.id}')">
-                        删除 🗑️
-                    </div>
-                    <div class="task-card relative bg-white p-4 flex justify-between items-center rounded-xl shadow-sm border border-gray-100 z-10 transition-transform duration-300">
-                        <div class="flex items-center gap-3 select-none flex-1 cursor-pointer active:scale-[0.98] transition-transform" onclick="openTaskDetail('${task.id}')">
-                            <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl pointer-events-none">🎯</div>
-                            <div>
-                                <p class="font-bold text-gray-800 text-base">${task.name}</p>
-                                <p class="text-[11px] text-gray-400 mt-0.5">点击查看进度，左滑删除 ⬅️</p>
-                            </div>
+                    <div class="flex items-center gap-3 select-none flex-1 cursor-pointer active:scale-[0.98] transition-transform" onclick="openTaskDetail('${task.id}')">
+                        <div class="w-10 h-10 bg-[#f1f8e9] rounded-full flex items-center justify-center text-xl pointer-events-none">🎯</div>
+                        <div>
+                            <p class="font-bold text-gray-800 text-base">${task.name}</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5">点击查看打卡进度与详情</p>
                         </div>
-                        ${buttonHtml}
                     </div>
+                    ${buttonHtml}
                 `;
                 listDiv.appendChild(div);
             });
-
-            attachSwipeListeners();
         }
 
-        function attachSwipeListeners() {
-            const cards = document.querySelectorAll('.task-card');
-            cards.forEach(card => {
-                let isDragging = false;
-                let startX = 0;
-                let currentX = 0;
-
-                const startDrag = (e) => {
-                    isDragging = true;
-                    startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-                    card.style.transition = 'none'; 
-                };
-
-                const moveDrag = (e) => {
-                    if (!isDragging) return;
-                    const x = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-                    currentX = x - startX;
-                    if (currentX < 0) {
-                        const moveX = Math.max(currentX, -90); 
-                        card.style.transform = `translateX(${moveX}px)`;
-                    }
-                };
-
-                const endDrag = (e) => {
-                    if (!isDragging) return;
-                    isDragging = false;
-                    card.style.transition = 'transform 0.3s ease'; 
-                    if (currentX < -45) {
-                        card.style.transform = `translateX(-80px)`;
-                    } else {
-                        card.style.transform = `translateX(0px)`;
-                    }
-                    currentX = 0;
-                };
-
-                card.addEventListener('touchstart', startDrag, {passive: true});
-                card.addEventListener('touchmove', moveDrag, {passive: true});
-                card.addEventListener('touchend', endDrag);
-
-                card.addEventListener('mousedown', startDrag);
-                card.addEventListener('mousemove', moveDrag);
-                card.addEventListener('mouseup', endDrag);
-                card.addEventListener('mouseleave', endDrag);
-            });
-        }
-
-        function deleteTask(taskId) {
-            if(confirm('确定要删除这个习惯吗？删除后未来将不再出现。')) {
-                tasks = tasks.filter(t => t.id !== taskId);
-                localforage.setItem('habitTasks', tasks); 
-                renderTasks();
-            }
-        }
+        // ================= 移除左滑相关的 JS 代码 =================
 
         function clearAllData() {
             if(confirm('⚠️ 危险操作：作为产品经理测试，你确定要清空所有的习惯和打卡记录吗？清空后将无法恢复！')) {
