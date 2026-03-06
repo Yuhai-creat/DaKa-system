@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V15.1</title>
+    <title>艺联清单 V16.0</title>
     
     <link rel="preload" href="./logo.png" as="image">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <style>
-        /* 隐藏横向滚动条，但保留滚动功能 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
@@ -52,34 +51,25 @@
     <!-- 手机壳容器 -->
     <div class="max-w-md mx-auto bg-[#f5f7f5] min-h-screen shadow-xl sm:rounded-3xl sm:min-h-[850px] overflow-hidden relative">
         
-        <!-- ================= 主视图 (Dashboard) ================= -->
+        <!-- ================= 主视图 ================= -->
         <div id="main-view" class="block w-full h-full relative">
-            
-            <!-- 【V15.1 还原图一经典顶部导航栏 + 横向日历】 -->
             <div class="bg-[#eaf5ec] pt-4 pb-2 sticky top-0 z-20 flex flex-col shadow-[0_4px_10px_rgba(0,0,0,0.02)]">
-                <!-- 顶部经典品牌露出与状态 -->
                 <div class="flex justify-between items-center px-5 mb-3">
                     <h1 class="text-xl font-bold text-gray-800">艺联清单</h1>
                     <div class="flex items-center gap-3">
-                        <!-- 巧妙结合：点击当前的日期胶囊，即可瞬间“回到今天” -->
                         <div onclick="syncDate(getStrFromDate(new Date()))" class="text-sm text-[#4caf50] font-semibold bg-[#dcfce7] px-3 py-1.5 rounded-full cursor-pointer active:scale-95 transition-transform" title="点击回到今天">当前：<span id="header-date"></span></div>
-                        <!-- 清空数据后台通道 -->
-                        <button onclick="clearAllData()" class="text-2xl text-gray-400 hover:text-red-500 transition-colors leading-none mb-0.5" title="清空所有测试数据">⚙️</button>
+                        <button onclick="clearAllData()" class="text-2xl text-gray-400 hover:text-red-500 transition-colors leading-none mb-0.5" title="清空所有数据">⚙️</button>
                     </div>
                 </div>
-                
-                <!-- 横滑日历区 -->
                 <div id="horizontal-calendar" class="flex overflow-x-auto no-scrollbar items-center px-3 space-x-1 pb-1"></div>
             </div>
 
-            <!-- 内容区 -->
             <div class="p-4 space-y-6 pb-28">
                 <!-- 待办区 -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
                     <h2 class="text-lg font-bold text-gray-800 mb-4 pl-1">今日待办</h2>
                     <div id="today-tasks-list" class="space-y-3"></div>
                 </div>
-
                 <!-- 记录墙 -->
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-50">
                     <h2 class="text-lg font-bold text-gray-800 mb-4 pl-1">今日打卡日志</h2>
@@ -97,31 +87,23 @@
             </div>
         </div>
 
-        <!-- ================= 创建习惯视图 (全屏滑出) ================= -->
+        <!-- ================= 创建习惯视图 ================= -->
         <div id="create-view" class="hidden absolute inset-0 bg-[#f5f7f5] z-50 min-h-screen flex-col slide-in">
-            <!-- 顶部导航 -->
             <div class="bg-[#f5f7f5] p-5 flex justify-between items-center sticky top-0 z-40">
                 <button onclick="closeCreateView()" class="text-3xl text-gray-600 hover:text-gray-800 px-2 leading-none pb-1 -ml-2">‹</button>
                 <h2 class="font-bold text-gray-800 text-lg">创建习惯</h2>
                 <span class="text-xs font-bold text-[#4caf50] bg-[#eaf5ec] px-3 py-1.5 rounded-full cursor-pointer hover:bg-[#c8e6c9]">AI助手</span>
             </div>
 
-            <!-- 滚动内容区 -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
-                
-                <!-- 图标和输入框融合块 -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center">
-                    <div id="create-icon-wrapper" onclick="openIconPicker('create')" class="relative cursor-pointer active:scale-95 transition-transform mb-6">
-                        <!-- JS 渲染 -->
-                    </div>
-                    
+                    <div id="create-icon-wrapper" onclick="openIconPicker('create')" class="relative cursor-pointer active:scale-95 transition-transform mb-6"></div>
                     <div class="w-full flex items-center bg-[#f8faf8] rounded-xl p-3 px-4">
                         <input type="text" id="create-task-name" class="flex-1 bg-transparent text-[15px] font-bold focus:outline-none text-gray-800 placeholder-gray-400" placeholder="例如早起、背单词等">
                         <span class="bg-white text-[#4caf50] px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">习惯库</span>
                     </div>
                 </div>
 
-                <!-- 习惯周期 -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-5 pt-6">
                     <h3 class="text-sm font-bold text-gray-800 mb-4">习惯周期</h3>
                     <div class="flex gap-2 mb-5 overflow-x-auto no-scrollbar pb-1">
@@ -133,7 +115,6 @@
                     <div class="flex justify-between px-1" id="create-week-days-container"></div>
                 </div>
 
-                <!-- 习惯目标 -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-5 pt-6">
                     <h3 class="text-sm font-bold text-gray-800 mb-4 flex items-center gap-1.5">
                         习惯目标 
@@ -145,20 +126,17 @@
                     </div>
                 </div>
 
-                <!-- 提醒时间 (视觉占位还原) -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-5 pt-6">
                     <h3 class="text-sm font-bold text-gray-800 mb-4">提醒时间</h3>
                     <button class="w-[50px] h-[50px] flex items-center justify-center border border-dashed border-gray-300 rounded-2xl text-gray-400 text-3xl hover:bg-gray-50 font-light leading-none pb-1 transition-colors">+</button>
                 </div>
 
-                <!-- 开始日期 -->
                 <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-5 flex justify-between items-center">
                     <h3 class="text-sm font-bold text-gray-800">打卡开始日期</h3>
                     <input type="date" id="create-start-date" class="text-sm text-gray-600 bg-transparent text-right font-bold cursor-pointer focus:outline-none">
                 </div>
             </div>
             
-            <!-- 底部固定保存按钮 -->
             <div class="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-gray-100 pb-8 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50">
                 <button onclick="saveNewTask()" class="w-full bg-[#4caf50] hover:bg-[#43a047] text-white font-bold py-3.5 rounded-full shadow-[0_4px_15px_rgba(76,175,80,0.3)] transition-transform active:scale-[0.98] text-[15px]">
                     保存
@@ -199,8 +177,12 @@
                     </div>
                 </div>
 
+                <!-- 打卡日志模块：加入长按删除提醒 -->
                 <div class="bg-white rounded-2xl shadow-sm p-5">
-                    <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2"><span class="text-[#4caf50]">🗂️</span> 打卡日志</h2>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-bold text-gray-800 flex items-center gap-2"><span class="text-[#4caf50]">🗂️</span> 打卡日志</h2>
+                        <span class="text-[11px] text-gray-400 bg-gray-50 px-2 py-1 rounded-full">长按记录可删除</span>
+                    </div>
                     <div id="detail-records-list" class="space-y-3 max-h-64 overflow-y-auto pr-2"></div>
                 </div>
 
@@ -284,7 +266,9 @@
         let globalViewDate = new Date();        
         let currentDetailTaskId = null; 
 
-        // 创建视图的独立状态
+        // 长按删除定时器
+        let recordPressTimer = null;
+
         let creatingTaskIcon = '🥔'; 
         let creatingSelectedDays =[1, 2, 3, 4, 5, 6, 0];
         let creatingGoal = 'once';
@@ -294,7 +278,6 @@
             return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
 
-        // --- 核心工具：渲染统一图标样式 ---
         function renderIconHtml(iconData, sizeClasses = 'w-10 h-10', textClass = 'text-xl') {
             const icon = iconData || '🎯'; 
             if (icon.startsWith('data:image')) {
@@ -346,15 +329,13 @@
             renderRecords();
         }
 
-        // ================= 【V15.1】横向日历逻辑 =================
+        // ================= 横向日历逻辑 =================
         function initHorizontalCalendar() {
             const container = document.getElementById('horizontal-calendar');
             container.innerHTML = '';
             
             const today = new Date();
             today.setHours(0,0,0,0);
-            
-            // 生成前后30天
             const startDate = new Date(today);
             startDate.setDate(today.getDate() - 30);
             
@@ -362,7 +343,6 @@
                 const d = new Date(startDate);
                 d.setDate(startDate.getDate() + i);
                 const dStr = getStrFromDate(d);
-                
                 const dayNames =['日', '一', '二', '三', '四', '五', '六'];
                 const dayName = dStr === getStrFromDate(today) ? '今' : dayNames[d.getDay()];
                 const dateNum = d.getDate();
@@ -372,12 +352,7 @@
                 el.dataset.date = dStr;
                 el.onclick = () => syncDate(dStr);
                 
-                el.innerHTML = `
-                    <span class="cal-day text-[11px] mb-1.5 text-gray-500">${dayName}</span>
-                    <div class="cal-num w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-700 font-medium text-[15px] transition-colors">
-                        ${dateNum}
-                    </div>
-                `;
+                el.innerHTML = `<span class="cal-day text-[11px] mb-1.5 text-gray-500">${dayName}</span><div class="cal-num w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-700 font-medium text-[15px] transition-colors">${dateNum}</div>`;
                 container.appendChild(el);
             }
         }
@@ -399,13 +374,7 @@
                     numDiv.className = 'cal-num w-[34px] h-[34px] rounded-full flex items-center justify-center text-gray-700 font-medium bg-transparent';
                 }
             });
-            
-            // 居中动画
-            if (selectedEl) {
-                setTimeout(() => {
-                    selectedEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }, 100);
-            }
+            if (selectedEl) setTimeout(() => { selectedEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); }, 100);
         }
 
         function syncDate(val) {
@@ -417,7 +386,7 @@
             renderRecords();
         }
 
-        // ================= 【V15.1】全屏创建视图逻辑 =================
+        // ================= 全屏创建视图逻辑 =================
         function openCreateView() {
             document.getElementById('create-task-name').value = '';
             creatingTaskIcon = '🥔';
@@ -506,7 +475,6 @@
             });
         }
 
-        // ================= 图标选择器复用逻辑 =================
         function openIconPicker(context) {
             iconSelectContext = context;
             const modal = document.getElementById('icon-picker-modal');
@@ -520,36 +488,29 @@
                 </div>
             `).join('');
 
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
             requestAnimationFrame(() => {
-                modal.classList.remove('opacity-0');
-                content.classList.remove('translate-y-full');
+                modal.classList.remove('opacity-0'); content.classList.remove('translate-y-full');
             });
         }
 
         function closeIconPicker() {
             const modal = document.getElementById('icon-picker-modal');
             const content = document.getElementById('icon-picker-content');
-            modal.classList.add('opacity-0');
-            content.classList.add('translate-y-full');
+            modal.classList.add('opacity-0'); content.classList.add('translate-y-full');
             setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300); 
         }
 
         function updateTaskIcon(iconData) {
             if (iconSelectContext === 'create') {
-                creatingTaskIcon = iconData;
-                updateCreateIconPreview();
-                closeIconPicker();
+                creatingTaskIcon = iconData; updateCreateIconPreview(); closeIconPicker();
             } else if (iconSelectContext === 'detail') {
                 if(!currentDetailTaskId) return;
                 const task = tasks.find(t => t.id === currentDetailTaskId);
                 if(task) {
                     task.icon = iconData; 
                     localforage.setItem('habitTasks', tasks).then(() => {
-                        closeIconPicker();
-                        renderTasks(); 
-                        updateDetailHeaderIcon(task); 
+                        closeIconPicker(); renderTasks(); updateDetailHeaderIcon(task); 
                     });
                 }
             }
@@ -562,22 +523,16 @@
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const size = 150; 
-                    canvas.width = size; canvas.height = size;
+                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+                    const size = 150; canvas.width = size; canvas.height = size;
                     const minDim = Math.min(img.width, img.height);
-                    const startX = (img.width - minDim) / 2;
-                    const startY = (img.height - minDim) / 2;
+                    const startX = (img.width - minDim) / 2; const startY = (img.height - minDim) / 2;
                     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, size, size);
                     ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
                     updateTaskIcon(compressedBase64);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
+                }; img.src = e.target.result;
+            }; reader.readAsDataURL(file); event.target.value = '';
         }
 
         // ================= 详情页逻辑 =================
@@ -589,6 +544,39 @@
                     <span class="text-[10px] block leading-none">🔄</span>
                 </div>
             `;
+        }
+
+        // 【V16.0 新增】长按删除日记的核心监听逻辑
+        function startRecordPress(recordId) {
+            if (recordPressTimer) clearTimeout(recordPressTimer);
+            recordPressTimer = setTimeout(() => {
+                // 如果手机支持，触发短震动提示
+                if (window.navigator && window.navigator.vibrate) {
+                    window.navigator.vibrate(50);
+                }
+                
+                // 弹出安全确认框
+                if (confirm('⚠️ 确定要删除这条打卡记录吗？\n删除后，该任务的月度进度和连续天数将自动重新计算！')) {
+                    // 从全局记录中过滤掉该条
+                    records = records.filter(r => r.id !== recordId);
+                    
+                    // 保存并自动刷新界面
+                    localforage.setItem('habitRecords', records).then(() => {
+                        if (currentDetailTaskId) {
+                            openTaskDetail(currentDetailTaskId); // 重绘详情页，数据自动滚回
+                        }
+                        renderTasks(); // 刷新主页待办状态
+                        renderRecords(); // 刷新主页打卡墙
+                    });
+                }
+            }, 700); // 700毫秒触发长按
+        }
+
+        function cancelRecordPress() {
+            if (recordPressTimer) {
+                clearTimeout(recordPressTimer);
+                recordPressTimer = null;
+            }
         }
 
         function openTaskDetail(taskId) {
@@ -639,12 +627,21 @@
             } else {
                 taskRecords.forEach(r => {
                     const rDiv = document.createElement('div');
-                    rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100';
-                    let imgHtml = r.image ? `<img src="${r.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 shrink-0">` : `<div class="w-10 h-10 bg-[#eaf5ec] rounded-lg flex items-center justify-center text-xl shrink-0">📝</div>`;
-                    let noteHtml = r.note ? `<p class="text-xs text-gray-500 truncate w-32">${r.note}</p>` : '';
+                    // 【V16.0 注入】加入防选中文本属性及各种长按触摸事件绑定
+                    rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100 cursor-pointer select-none [-webkit-touch-callout:none] transition-transform active:scale-[0.98]';
+                    rDiv.onmousedown = () => startRecordPress(r.id);
+                    rDiv.ontouchstart = () => startRecordPress(r.id);
+                    rDiv.onmouseup = cancelRecordPress;
+                    rDiv.onmouseleave = cancelRecordPress;
+                    rDiv.ontouchend = cancelRecordPress;
+                    rDiv.ontouchmove = cancelRecordPress;
+                    rDiv.oncontextmenu = (e) => e.preventDefault(); // 阻止移动端默认菜单
+
+                    let imgHtml = r.image ? `<img src="${r.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 shrink-0 pointer-events-none">` : `<div class="w-10 h-10 bg-[#eaf5ec] rounded-lg flex items-center justify-center text-xl shrink-0 pointer-events-none">📝</div>`;
+                    let noteHtml = r.note ? `<p class="text-xs text-gray-500 truncate w-32 pointer-events-none">${r.note}</p>` : '';
                     rDiv.innerHTML = `
-                        <div class="flex items-center gap-3">${imgHtml}<div><p class="font-bold text-sm text-gray-800">${r.date}</p>${noteHtml}</div></div>
-                        <span class="text-xs text-gray-400 bg-white px-2 py-1 rounded shadow-sm border border-gray-50">${r.time}</span>
+                        <div class="flex items-center gap-3 pointer-events-none">${imgHtml}<div><p class="font-bold text-sm text-gray-800">${r.date}</p>${noteHtml}</div></div>
+                        <span class="text-xs text-gray-400 bg-white px-2 py-1 rounded shadow-sm border border-gray-50 pointer-events-none">${r.time}</span>
                     `;
                     logContainer.appendChild(rDiv);
                 });
@@ -747,12 +744,12 @@
             });
         }
 
-        // ================= 基础打卡弹窗 =================
         function clearAllData() {
             if(confirm('⚠️ 确定要清空所有的习惯和打卡记录吗？清空后将无法恢复！')) {
                 localforage.clear().then(() => { localStorage.clear(); location.reload(); });
             }
         }
+
         function openModal(taskId, taskName) {
             document.getElementById('current-task-id').value = taskId;
             document.getElementById('modal-title').textContent = getStrFromDate(globalViewDate) < getStrFromDate(new Date()) ? `补卡: ${taskName}` : `打卡: ${taskName}`;
@@ -763,7 +760,9 @@
             btn.textContent = '确认打卡'; btn.disabled = false; btn.className = 'flex-1 py-3.5 bg-[#4caf50] text-white rounded-xl font-bold hover:bg-[#43a047] text-[15px]';
             document.getElementById('checkin-modal').classList.remove('hidden');
         }
+
         function closeModal() { document.getElementById('checkin-modal').classList.add('hidden'); }
+
         function previewImage(event) {
             const file = event.target.files[0];
             if (file) {
@@ -775,6 +774,7 @@
                 reader.readAsDataURL(file);
             }
         }
+
         function compressImage(file, callback) {
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -791,6 +791,7 @@
                 }; img.src = e.target.result;
             }; reader.readAsDataURL(file);
         }
+
         function submitCheckIn() {
             const taskId = document.getElementById('current-task-id').value;
             const fileInput = document.getElementById('photo-upload');
@@ -815,6 +816,7 @@
             };
             if (fileInput.files[0]) compressImage(fileInput.files[0], saveRecord); else saveRecord(null);
         }
+
         function renderRecords() {
             const historyListDiv = document.getElementById('history-list');
             historyListDiv.innerHTML = '';
