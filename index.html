@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V19.0</title>
+    <title>艺联清单 V20.0</title>
     
     <link rel="preload" href="./logo.png" as="image">
 
@@ -51,10 +51,9 @@
     <!-- 手机壳容器 -->
     <div class="max-w-md mx-auto bg-[#f5f7f5] min-h-screen shadow-xl sm:rounded-3xl sm:min-h-[850px] overflow-hidden relative">
         
-        <!-- ================= 侧边导航栏 (Sidebar) 改回左侧滑出 ================= -->
+        <!-- ================= 侧边导航栏 ================= -->
         <div id="sidebar-overlay" class="absolute inset-0 bg-black/40 hidden z-[130] opacity-0 transition-opacity duration-300" onclick="closeSidebar()"></div>
         
-        <!-- 【V19.0 修改】改回 left-0 和 -translate-x-full，阴影向右 -->
         <div id="sidebar-panel" class="absolute top-0 left-0 bottom-0 w-[80%] max-w-[280px] bg-[#f4f9f4] z-[140] transform -translate-x-full transition-transform duration-300 flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.15)]">
             
             <div class="p-5 pt-8 relative z-20 bg-[#f4f9f4]">
@@ -103,9 +102,10 @@
                         <div class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors">
                             <span class="text-xl w-6 text-center block">🏷️</span> <span class="font-medium text-[16px]">标签管理</span>
                         </div>
-                        <a href="https://yuhai-creat.github.io/Author-Biography/" target="_blank" class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors decoration-transparent">
+                        <!-- 【V20.0 修改】将外部跳转改为触发内置页面打开事件 -->
+                        <div onclick="openAuthorView()" class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors decoration-transparent">
                             <span class="text-xl w-6 text-center block">👨‍💻</span> <span class="font-medium text-[16px]">作者简介</span>
-                        </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -114,8 +114,6 @@
         <!-- ================= 主视图 ================= -->
         <div id="main-view" class="block w-full h-full relative">
             <div class="bg-[#eaf5ec] pt-4 pb-2 sticky top-0 z-20 flex flex-col shadow-[0_4px_10px_rgba(0,0,0,0.02)]">
-                
-                <!-- 【保持 V18 的排版】标题靠左，日期和菜单按钮靠右 -->
                 <div class="flex justify-between items-center px-5 mb-3">
                     <div class="flex items-center">
                         <h1 class="text-xl font-bold text-gray-800">艺联清单</h1>
@@ -125,7 +123,6 @@
                         <button onclick="openSidebar()" class="text-3xl text-gray-700 font-light leading-none -mt-1 active:scale-90 transition-transform">≡</button>
                     </div>
                 </div>
-
                 <div id="horizontal-calendar" class="flex overflow-x-auto no-scrollbar items-center px-3 space-x-1 pb-1"></div>
             </div>
 
@@ -142,12 +139,82 @@
                 </div>
             </div>
 
-            <!-- 悬浮添加按钮 (FAB) -->
+            <!-- 悬浮添加按钮 -->
             <div class="fixed bottom-6 right-0 left-0 pointer-events-none z-40">
                 <div class="max-w-md mx-auto relative h-full">
                     <button onclick="openCreateView()" class="absolute bottom-0 right-6 w-16 h-16 bg-[#4caf50] text-white rounded-full shadow-[0_8px_20px_rgba(76,175,80,0.4)] text-5xl flex items-center justify-center hover:bg-[#43a047] active:scale-90 transition-transform pb-2 pointer-events-auto">
                         +
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 【V20.0 新增】团队/作者简介视图 ================= -->
+        <div id="author-view" class="hidden absolute inset-0 bg-[#f5f7f5] z-50 min-h-screen flex-col slide-in">
+            <!-- 顶部导航 -->
+            <div class="bg-[#f5f7f5] p-5 flex justify-between items-center sticky top-0 z-40">
+                <button onclick="closeAuthorView()" class="text-3xl text-gray-600 hover:text-gray-800 px-2 leading-none pb-1 -ml-2">‹</button>
+                <h2 class="font-bold text-gray-800 text-lg">作者简介</h2>
+                <div class="w-8"></div> <!-- 占位平衡用 -->
+            </div>
+
+            <!-- 内容区 -->
+            <div class="flex-1 overflow-y-auto p-4 pt-2 pb-20">
+                <!-- 头部说明 -->
+                <div class="text-center px-4 mb-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-[#eaf5ec] text-[#4caf50] rounded-full text-3xl mb-3 shadow-sm">👨‍💻</div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">艺联清单核心团队</h3>
+                    <p class="text-xs text-gray-500 leading-relaxed">致力于为您提供最纯粹、最高效的时间管理工具。以下是本项目的核心创作者们：</p>
+                </div>
+
+                <!-- 横向滑动的作者卡片 (保证并排展示) -->
+                <!-- 使用 -mx-4 和 px-4 保证左右能滑出边框边缘，产生流畅感 -->
+                <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 no-scrollbar -mx-4 px-4 pb-6">
+                    
+                    <!-- 🏆 作者 1 -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
+                        <!-- 替换这里的 src 路径即可修改头像 -->
+                        <img src="img/1.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
+                        
+                        <h4 class="font-bold text-gray-800 text-xl mb-1">产品经理：与海</h4>
+                        <p class="text-xs text-[#4caf50] font-bold bg-[#eaf5ec] px-3 py-1 rounded-full mb-4">产品设计 / 统筹</p>
+                        
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            负责艺联清单的整体产品规划与UI/UX交互设计。热爱极简美学，希望用科技帮助大家更好地管理时间与生活。<br><br>
+                        </div>
+                    </div>
+
+                    <!-- 🏆 作者 2 -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
+                        <!-- 替换这里的 src 路径即可修改头像 -->
+                        <img src="img/2.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
+                        
+                        <h4 class="font-bold text-gray-800 text-xl mb-1">开发人员：李琛</h4>
+                        <p class="text-xs text-orange-500 font-bold bg-orange-50 px-3 py-1 rounded-full mb-4">前端开发工程师</p>
+                        
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            主导了本项目的纯前端技术架构设计与核心代码编写，攻克了原生级别的流畅动画与本地大容量数据存储难题。<br><br>
+                        </div>
+                    </div>
+
+                    <!-- 🏆 作者 3 -->
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
+                        <!-- 替换这里的 src 路径即可修改头像 -->
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&backgroundColor=e0f2fe" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
+                        
+                        <h4 class="font-bold text-gray-800 text-xl mb-1">全栈/视觉：姚铮</h4>
+                        <p class="text-xs text-blue-500 font-bold bg-blue-50 px-3 py-1 rounded-full mb-4">视觉设计 / 架构</p>
+                        
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            负责底层数据模型设计与性能优化，以及品牌的视觉传播。致力于探索前沿技术，对习惯养成与数据分析有深入研究。<br><br>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 底部提示语 -->
+                <div class="text-center text-xs text-gray-400">
+                    <p class="flex items-center justify-center gap-1"><span>👈</span> 左右滑动查看团队成员 <span>👉</span></p>
                 </div>
             </div>
         </div>
@@ -267,7 +334,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- ================= 图标选择抽屉 ================= -->
     <div id="icon-picker-modal" class="fixed inset-0 bg-black/40 hidden z-[120] flex-col justify-end transition-opacity duration-300 opacity-0">
@@ -390,7 +456,7 @@
             renderRecords();
         }
 
-        // ================= 【V19.0 侧边栏：改回左侧滑出】 =================
+        // ================= 侧边栏与全局搜索逻辑 =================
         function openSidebar() {
             const overlay = document.getElementById('sidebar-overlay');
             const panel = document.getElementById('sidebar-panel');
@@ -401,7 +467,6 @@
 
             requestAnimationFrame(() => {
                 overlay.classList.remove('opacity-0');
-                // 移除 -translate-x-full 实现向右滑出
                 panel.classList.remove('-translate-x-full');
             });
         }
@@ -410,7 +475,6 @@
             const overlay = document.getElementById('sidebar-overlay');
             const panel = document.getElementById('sidebar-panel');
             overlay.classList.add('opacity-0');
-            // 加上 -translate-x-full 实现向左收起
             panel.classList.add('-translate-x-full');
             setTimeout(() => {
                 overlay.classList.add('hidden');
@@ -444,9 +508,23 @@
 
         function openTaskFromSearch(taskId) {
             closeSidebar();
+            setTimeout(() => { openTaskDetail(taskId); }, 300); 
+        }
+
+        // ================= 【V20.0 新增】作者简介跳转逻辑 =================
+        function openAuthorView() {
+            closeSidebar();
             setTimeout(() => {
-                openTaskDetail(taskId);
+                document.getElementById('main-view').classList.replace('block', 'hidden');
+                const view = document.getElementById('author-view');
+                view.classList.replace('hidden', 'flex');
             }, 300); 
+        }
+
+        function closeAuthorView() {
+            const view = document.getElementById('author-view');
+            view.classList.replace('flex', 'hidden');
+            document.getElementById('main-view').classList.replace('hidden', 'block');
         }
 
         // ================= 横向日历逻辑 =================
