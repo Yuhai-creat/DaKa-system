@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V22.1</title>
+    <title>艺联清单 V22.2</title>
     
     <link rel="preload" href="img/logo.jpg" as="image">
     <link rel="icon" type="image/png" href="img/logo.jpg" sizes="32x32">
@@ -675,6 +675,7 @@
         }
 
         // 导出数据逻辑
+        // 导出数据逻辑（修复 iOS Safari 下载报错问题）
         function exportData() {
             try {
                 const dataToExport = {
@@ -683,20 +684,36 @@
                     exportDate: new Date().toISOString()
                 };
                 const jsonStr = JSON.stringify(dataToExport);
+                const fileName = `艺联清单数据备份_${getStrFromDate(new Date()).replace(/-/g, '')}.json`;
+
+                // 核心修复：优先使用系统原生分享/存储 API (完美解决苹果 iOS 限制)
+                if (navigator.canShare && window.File) {
+                    const file = new File([jsonStr], fileName, { type: "application/json" });
+                    // 如果系统允许分享文件
+                    if (navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file],
+                            title: '艺联清单备份',
+                            text: '这是您的艺联清单数据备份，请存储到“文件”或发送至其他设备。'
+                        }).catch(err => console.log('用户取消分享或报错:', err));
+                        return; // 调起分享面板后直接结束函数，不走下面的老办法
+                    }
+                }
+
+                // 备用方案：传统的下载模式 (适用于电脑端浏览器)
                 const blob = new Blob([jsonStr], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
-                
                 const a = document.createElement('a');
                 a.href = url;
-                // 文件名加上当天的日期
-                a.download = `艺联清单数据备份_${getStrFromDate(new Date()).replace(/-/g, '')}.json`;
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+
             } catch (err) {
                 console.error(err);
-                alert("导出失败，请检查浏览器权限重试！");
+                alert("导出失败，请尝试在系统设置中清理浏览器缓存后再试！");
             }
         }
 
