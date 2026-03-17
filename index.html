@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V22.0</title>
+    <title>艺联清单 V22.1</title>
     
     <link rel="preload" href="img/logo.jpg" as="image">
     <link rel="icon" type="image/png" href="img/logo.jpg" sizes="32x32">
@@ -22,17 +22,11 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        /* 【核心修复点1】：将 forwards 改为 both。让元素在延迟期间也保持从 0 开始的透明状态，彻底消除闪烁 */
         .animate-fade-up { animation: fadeUp 0.8s ease-out both; } 
-        
         .delay-100 { animation-delay: 150ms; }
         .delay-200 { animation-delay: 300ms; }
         
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.6;
-        }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
 
         @keyframes slideInRight {
             from { transform: translateX(100%); }
@@ -50,7 +44,6 @@
 <body class="bg-[#eaf5ec] font-sans min-h-screen text-gray-800 sm:py-6">
 
     <!-- 闪屏 -->
-    <!-- 【核心修复点2】：增加 style 强行兜底背景色和文字颜色，防止 CSS 框架加载延迟导致黑色裸奔 -->
     <div id="splash-screen" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out" style="background-color: #ffffff;">
         <img src="img/logo.jpg" alt="Logo" class="w-40 h-40 mb-8 object-contain animate-fade-up" onerror="this.style.display='none';">
         <h1 class="text-4xl font-bold mb-5 tracking-[0.2em] pl-2 animate-fade-up delay-100" style="color: #00a651;">艺联清单</h1>
@@ -108,9 +101,12 @@
                         <div class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors">
                             <span class="text-xl w-6 text-center block">📁</span> <span class="font-medium text-[16px]">分类管理</span>
                         </div>
-                        <div class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors">
-                            <span class="text-xl w-6 text-center block">🏷️</span> <span class="font-medium text-[16px]">标签管理</span>
+                        
+                        <!-- 【V22.0 替换标签管理 -> 数据管理】 -->
+                        <div onclick="openDataManagementView()" class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors">
+                            <span class="text-xl w-6 text-center block">💾</span> <span class="font-medium text-[16px]">数据管理</span>
                         </div>
+
                         <div onclick="openAuthorView()" class="flex items-center gap-3 text-gray-700 cursor-pointer hover:text-[#4caf50] transition-colors decoration-transparent">
                             <span class="text-xl w-6 text-center block">👨‍💻</span> <span class="font-medium text-[16px]">作者简介</span>
                         </div>
@@ -152,6 +148,45 @@
             </div>
         </div>
 
+        <!-- ================= 【V22.0 新增】数据管理视图 (导入/导出/全局检索) ================= -->
+        <div id="data-management-view" class="hidden absolute inset-0 bg-[#f5f7f5] z-50 min-h-screen flex-col slide-in overflow-x-hidden">
+            <div class="bg-[#f5f7f5] p-5 flex justify-between items-center sticky top-0 z-40">
+                <button onclick="closeDataManagementView()" class="text-3xl text-gray-600 hover:text-gray-800 px-2 leading-none pb-1 -ml-2">‹</button>
+                <h2 class="font-bold text-gray-800 text-lg">数据管理</h2>
+                <div class="w-8"></div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto px-4 pb-20 pt-2">
+                
+                <!-- 跨设备导入导出按钮 -->
+                <div class="flex gap-3 mb-5">
+                    <button onclick="exportData()" class="flex-1 bg-white border border-[#4caf50] text-[#4caf50] font-bold py-3 rounded-2xl shadow-sm hover:bg-[#eaf5ec] transition-colors flex justify-center items-center gap-2 active:scale-95">
+                        <span class="text-xl">📤</span> 导出数据
+                    </button>
+                    <!-- 用 label 包裹 input 实现点击按钮触发文件选择 -->
+                    <label class="flex-1 bg-[#4caf50] text-white font-bold py-3 rounded-2xl shadow-sm hover:bg-[#43a047] transition-colors flex justify-center items-center gap-2 cursor-pointer active:scale-95">
+                        <span class="text-xl">📥</span> 导入数据
+                        <input type="file" accept=".json" class="hidden" onchange="importData(event)">
+                    </label>
+                </div>
+
+                <div class="text-xs text-gray-400 text-center mb-6 leading-relaxed">
+                    本地存储换浏览器或手机后数据会消失。<br>请定期导出备份，在另一台设备导入即可跨平台使用！
+                </div>
+
+                <!-- 全局搜索框 -->
+                <div class="flex items-center bg-white rounded-2xl p-3 px-4 border border-gray-100 shadow-sm mb-6 sticky top-2 z-10">
+                    <span class="text-gray-400 mr-2 text-base">🔍</span>
+                    <input type="text" id="data-search-input" oninput="renderAllRecords()" class="flex-1 bg-transparent text-[15px] font-medium focus:outline-none text-gray-800 placeholder-gray-400" placeholder="搜索特定打卡内容或心得...">
+                </div>
+
+                <!-- 历史打卡日志瀑布流展示 (还原图2样式) -->
+                <div id="all-records-list" class="grid grid-cols-2 gap-3">
+                    <!-- JS 动态渲染 -->
+                </div>
+            </div>
+        </div>
+
         <!-- ================= 数据统计全景视图 (Stats View) ================= -->
         <div id="stats-view" class="hidden absolute inset-0 bg-[#f5f7f5] z-50 min-h-screen flex-col slide-in overflow-x-hidden">
             <div class="bg-[#f5f7f5] pt-5 pb-2 px-5 sticky top-0 z-40">
@@ -166,6 +201,7 @@
             </div>
 
             <div class="flex-1 overflow-y-auto px-4 pb-20 space-y-6">
+                <!-- 数据展示代码保持不变 -->
                 <div class="bg-white rounded-2xl shadow-sm p-4 flex gap-3 items-start border border-gray-50 mt-2">
                     <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-xl shrink-0">💡</div>
                     <div class="flex-1">
@@ -246,6 +282,7 @@
                 </div>
                 
                 <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 no-scrollbar -mx-4 px-4 pb-6">
+                    <!-- 作者卡片保持不变 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
                         <img src="img/1.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
                         <h4 class="font-bold text-gray-800 text-xl mb-1">艺数联动工作室</h4>
@@ -565,6 +602,149 @@
             closeSidebar(); setTimeout(() => { openTaskDetail(taskId); }, 300); 
         }
 
+        // ================= 【V22.0 新增】数据管理(导入/导出)视图 =================
+        function openDataManagementView() {
+            closeSidebar();
+            setTimeout(() => {
+                document.getElementById('main-view').classList.replace('block', 'hidden');
+                const view = document.getElementById('data-management-view');
+                view.classList.replace('hidden', 'flex');
+                document.getElementById('data-search-input').value = '';
+                renderAllRecords(); // 渲染全量数据
+            }, 300);
+        }
+
+        function closeDataManagementView() {
+            const view = document.getElementById('data-management-view');
+            view.classList.replace('flex', 'hidden');
+            document.getElementById('main-view').classList.replace('hidden', 'block');
+        }
+
+        // 渲染所有打卡记录（支持搜索过滤）
+        function renderAllRecords() {
+            const container = document.getElementById('all-records-list');
+            container.innerHTML = '';
+            const query = document.getElementById('data-search-input').value.trim().toLowerCase();
+            
+            // 过滤：按打卡心得或任务名称搜索
+            const filteredRecords = records.filter(r => {
+                if (!query) return true;
+                const matchNote = r.note && r.note.toLowerCase().includes(query);
+                const matchName = r.taskName && r.taskName.toLowerCase().includes(query);
+                return matchNote || matchName;
+            });
+
+            if (filteredRecords.length === 0) {
+                container.innerHTML = `<p class="text-gray-400 text-sm col-span-2 text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">没有找到相关的打卡记录哦~</p>`;
+                return;
+            }
+
+            // 按时间倒序排列（最新打卡的在最前面）
+            const sortedRecords = [...filteredRecords].sort((a, b) => {
+                const timeA = new Date(a.date + ' ' + a.time).getTime();
+                const timeB = new Date(b.date + ' ' + b.time).getTime();
+                return timeB - timeA;
+            });
+
+            // 渲染类似于图2的卡片样式
+            sortedRecords.forEach(record => {
+                const div = document.createElement('div');
+                div.className = 'bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative';
+                
+                let imageHtml = record.image ? `<img src="${record.image}" class="w-full h-32 object-cover">` : `<div class="w-full h-32 bg-[#f1f8e9] flex items-center justify-center text-4xl">📝</div>`;
+                let noteHtml = record.note ? `<div class="p-3 text-[13px] text-gray-700 bg-white leading-snug border-t border-gray-50">"${record.note}"</div>` : '';
+                
+                div.innerHTML = `
+                    <div class="px-3 py-2.5 flex justify-between items-center bg-white border-b border-gray-50">
+                        <span class="text-xs font-bold text-green-600 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                            ${record.date}
+                        </span>
+                        <span class="text-[10px] text-gray-400 font-medium">${record.time.substring(0, 5)}</span>
+                    </div>
+                    <div class="relative overflow-hidden bg-gray-200">
+                        ${imageHtml}
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-3 text-white pointer-events-none">
+                            <p class="text-xs font-bold drop-shadow-md truncate">${record.taskName}</p>
+                        </div>
+                    </div>
+                    ${noteHtml}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 导出数据逻辑
+        function exportData() {
+            try {
+                const dataToExport = {
+                    tasks: tasks,
+                    records: records,
+                    exportDate: new Date().toISOString()
+                };
+                const jsonStr = JSON.stringify(dataToExport);
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                // 文件名加上当天的日期
+                a.download = `艺联清单数据备份_${getStrFromDate(new Date()).replace(/-/g, '')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert("导出失败，请检查浏览器权限重试！");
+            }
+        }
+
+        // 导入数据逻辑
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // 简单校验数据格式是否合法
+                    if (!Array.isArray(importedData.tasks) || !Array.isArray(importedData.records)) {
+                        throw new Error("Invalid format");
+                    }
+                    
+                    if (confirm(`【警告】检测到备份文件（包含 ${importedData.tasks.length} 个习惯，${importedData.records.length} 条记录）。\n\n导入操作将彻底覆盖您当前的本地数据，是否继续？`)) {
+                        
+                        tasks = importedData.tasks;
+                        records = importedData.records;
+                        
+                        // 覆盖数据库
+                        Promise.all([
+                            localforage.setItem('habitTasks', tasks),
+                            localforage.setItem('habitRecords', records)
+                        ]).then(() => {
+                            alert("🎉 数据导入成功！");
+                            
+                            // 重新渲染当前页和背后的主页
+                            renderAllRecords();
+                            updateCalendarSelection();
+                            renderTasks();
+                            renderRecords();
+                        });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("导入失败：文件格式不正确或文件已损坏！");
+                }
+                // 清空 input 的 value，保证下次还能重复选这个文件
+                event.target.value = '';
+            };
+            // 以文本形式读取 json 文件
+            reader.readAsText(file);
+        }
+
         // ================= 作者简介 =================
         function openAuthorView() {
             closeSidebar();
@@ -588,7 +768,6 @@
                 const view = document.getElementById('stats-view');
                 view.classList.replace('hidden', 'flex');
                 
-                // 延迟一帧初始化，确保 ECharts 容器宽度已生成
                 setTimeout(() => {
                     initECharts();
                     switchStatsTab('week'); 
@@ -639,7 +818,6 @@
             today.setHours(0,0,0,0);
             const todayStr = getStrFromDate(today);
 
-            // 1. 确定时间范围
             let dateRange =[];
             let xAxisData =[];
             
@@ -670,7 +848,6 @@
                 }
             }
 
-            // 2. 统计四宫格数据
             let successCount = 0, failedCount = 0, notYetCount = 0;
             let trendDataMap = {}; 
             (currentStatsTab === 'day' ? xAxisData : dateRange).forEach(k => trendDataMap[k] = 0);
@@ -709,7 +886,6 @@
             if (successCount + failedCount > 0) rate = Math.round((successCount / (successCount + failedCount)) * 100);
             document.getElementById('stats-rate').textContent = rate;
 
-            // 3. 趋势图 ECharts
             const trendSeriesData = currentStatsTab === 'day' ? xAxisData.map(k => trendDataMap[k]) : dateRange.map(k => trendDataMap[k]);
             let trendOption = {
                 grid: { top: 10, left: 20, right: 10, bottom: 20 },
@@ -733,7 +909,6 @@
             };
             myChartTrend.setOption(trendOption, true);
 
-            // 4. 分布图 ECharts
             let categoryCounts = { '学习': 0, '工作': 0, '生活': 0, '其他': 0 };
             records.filter(r => dateRange.includes(r.date)).forEach(r => {
                 const n = r.taskName;
@@ -762,7 +937,6 @@
             };
             myChartDist.setOption(distOption, true);
 
-            // 5. 雷达图 ECharts
             let diligence = Math.min(Math.round((successCount / (dateRange.length * Math.max(tasks.length, 1))) * 100 * 1.5), 100) || 0;
             let efficiency = rate > 0 ? Math.min(Math.round(50 + (rate / 2)), 100) : 0;
             
@@ -955,7 +1129,7 @@
             if (taskRecords.length === 0) logContainer.innerHTML = `<div class="bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm border border-dashed border-gray-200">📭 暂无打卡日志</div>`;
             else {
                 taskRecords.forEach(r => {
-                    const rDiv = document.createElement('div'); rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100 cursor-pointer select-none[-webkit-touch-callout:none] transition-transform active:scale-[0.98]';
+                    const rDiv = document.createElement('div'); rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100 cursor-pointer select-none [-webkit-touch-callout:none] transition-transform active:scale-[0.98]';
                     rDiv.onmousedown = () => startRecordPress(r.id); rDiv.ontouchstart = () => startRecordPress(r.id);
                     rDiv.onmouseup = cancelRecordPress; rDiv.onmouseleave = cancelRecordPress; rDiv.ontouchend = cancelRecordPress; rDiv.ontouchmove = cancelRecordPress; rDiv.oncontextmenu = (e) => e.preventDefault(); 
                     let imgHtml = r.image ? `<img src="${r.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 shrink-0 pointer-events-none">` : `<div class="w-10 h-10 bg-[#eaf5ec] rounded-lg flex items-center justify-center text-xl shrink-0 pointer-events-none">📝</div>`;
