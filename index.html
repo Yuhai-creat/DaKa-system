@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>艺联清单 V21.4</title>
+    <title>艺联清单 V22.0</title>
     
     <link rel="preload" href="img/logo.jpg" as="image">
     <link rel="icon" type="image/png" href="img/logo.jpg" sizes="32x32">
     <link rel="apple-touch-icon" href="img/logo.jpg">
-
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
@@ -23,7 +22,10 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-up { animation: fadeUp 0.8s ease-out forwards; }
+        
+        /* 【核心修复点1】：将 forwards 改为 both。让元素在延迟期间也保持从 0 开始的透明状态，彻底消除闪烁 */
+        .animate-fade-up { animation: fadeUp 0.8s ease-out both; } 
+        
         .delay-100 { animation-delay: 150ms; }
         .delay-200 { animation-delay: 300ms; }
         
@@ -48,10 +50,11 @@
 <body class="bg-[#eaf5ec] font-sans min-h-screen text-gray-800 sm:py-6">
 
     <!-- 闪屏 -->
-    <div id="splash-screen" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out">
+    <!-- 【核心修复点2】：增加 style 强行兜底背景色和文字颜色，防止 CSS 框架加载延迟导致黑色裸奔 -->
+    <div id="splash-screen" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-700 ease-in-out" style="background-color: #ffffff;">
         <img src="img/logo.jpg" alt="Logo" class="w-40 h-40 mb-8 object-contain animate-fade-up" onerror="this.style.display='none';">
-        <h1 class="text-4xl font-bold text-[#00a651] mb-5 tracking-[0.2em] pl-2 animate-fade-up delay-100 opacity-0">艺联清单</h1>
-        <h2 class="text-2xl font-medium text-[#00a651] tracking-[0.1em] animate-fade-up delay-200 opacity-0">您的时间管家</h2>
+        <h1 class="text-4xl font-bold mb-5 tracking-[0.2em] pl-2 animate-fade-up delay-100" style="color: #00a651;">艺联清单</h1>
+        <h2 class="text-2xl font-medium tracking-[0.1em] animate-fade-up delay-200" style="color: #00a651;">您的时间管家</h2>
     </div>
 
     <!-- 手机壳容器 -->
@@ -242,35 +245,36 @@
                     <p class="text-xs text-gray-500 leading-relaxed">致力于为您提供最纯粹、最高效的时间管理工具。以下是本项目的核心创作者们：</p>
                 </div>
                 
-                <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 no-scrollbar -mx-4 px-4 pb-2">
-                    <!-- 作者 1 -->
+                <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 no-scrollbar -mx-4 px-4 pb-6">
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
                         <img src="img/1.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
                         <h4 class="font-bold text-gray-800 text-xl mb-1">艺数联动工作室</h4>
                         <p class="text-xs text-[#4caf50] font-bold bg-[#eaf5ec] px-3 py-1 rounded-full mb-4">产品设计 / 统筹</p>
-                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">负责艺联清单的整体产品规划与UI/UX交互设计。热爱极简美学，希望用科技帮助大家更好地管理时间与生活。<br><br></div>
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            负责艺联清单的整体产品规划与UI/UX交互设计。热爱极简美学，希望用科技帮助大家更好地管理时间与生活。<br><br>
+                        </div>
                     </div>
-                    <!-- 作者 2 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
                         <img src="img/2.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
                         <h4 class="font-bold text-gray-800 text-xl mb-1">与海</h4>
                         <p class="text-xs text-orange-500 font-bold bg-orange-50 px-3 py-1 rounded-full mb-4">前端开发工程师</p>
-                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">主导了本项目的纯前端技术架构设计与核心代码编写，攻克了原生级别的流畅动画与本地大容量数据存储难题。<br><br></div>
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            主导了本项目的纯前端技术架构设计与核心代码编写，攻克了原生级别的流畅动画与本地大容量数据存储难题。<br><br>
+                        </div>
                     </div>
-                    <!-- 作者 3 -->
                     <div class="bg-white rounded-3xl shadow-sm border border-gray-50 p-6 flex flex-col items-center min-w-[270px] w-[80%] snap-center shrink-0">
                         <img src="img/3.jpg" alt="头像" class="w-24 h-24 rounded-full border-4 border-white shadow-md mb-4 object-cover">
                         <h4 class="font-bold text-gray-800 text-xl mb-1">澜江鹤</h4>
                         <p class="text-xs text-blue-500 font-bold bg-blue-50 px-3 py-1 rounded-full mb-4">视觉设计 / 架构</p>
-                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">负责底层数据模型设计与性能优化，以及品牌的视觉传播。致力于探索前沿技术，对习惯养成与数据分析有深入研究。<br><br></div>
+                        <div class="bg-[#f8faf8] p-4 rounded-2xl text-[14px] text-gray-600 text-left w-full leading-relaxed flex-1 border border-gray-50">
+                            负责底层数据模型设计与性能优化，以及品牌的视觉传播。致力于探索前沿技术，对习惯养成与数据分析有深入研究。<br><br>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 【恢复】：底部提示语 -->
                 <div class="text-center text-xs text-gray-400 mt-4">
                     <p class="flex items-center justify-center gap-1"><span>👈</span> 左右滑动查看团队成员 <span>👉</span></p>
                 </div>
-                
             </div>
         </div>
 
@@ -608,8 +612,7 @@
         }
 
         function switchStatsTab(tab) {
-            currentStatsTab = tab;
-            ['day', 'week', 'month'].forEach(t => {
+            currentStatsTab = tab;['day', 'week', 'month'].forEach(t => {
                 const el = document.getElementById('tab-' + t);
                 if(t === tab) el.className = "pb-1 border-b-2 border-[#4caf50] text-[#4caf50] cursor-pointer transition-colors";
                 else el.className = "pb-1 border-b-2 border-transparent cursor-pointer transition-colors";
@@ -637,7 +640,7 @@
             const todayStr = getStrFromDate(today);
 
             // 1. 确定时间范围
-            let dateRange = [];
+            let dateRange =[];
             let xAxisData =[];
             
             if (currentStatsTab === 'day') {
@@ -952,7 +955,7 @@
             if (taskRecords.length === 0) logContainer.innerHTML = `<div class="bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm border border-dashed border-gray-200">📭 暂无打卡日志</div>`;
             else {
                 taskRecords.forEach(r => {
-                    const rDiv = document.createElement('div'); rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100 cursor-pointer select-none [-webkit-touch-callout:none] transition-transform active:scale-[0.98]';
+                    const rDiv = document.createElement('div'); rDiv.className = 'flex items-center justify-between p-3 bg-[#f8faf8] rounded-xl border border-gray-100 cursor-pointer select-none[-webkit-touch-callout:none] transition-transform active:scale-[0.98]';
                     rDiv.onmousedown = () => startRecordPress(r.id); rDiv.ontouchstart = () => startRecordPress(r.id);
                     rDiv.onmouseup = cancelRecordPress; rDiv.onmouseleave = cancelRecordPress; rDiv.ontouchend = cancelRecordPress; rDiv.ontouchmove = cancelRecordPress; rDiv.oncontextmenu = (e) => e.preventDefault(); 
                     let imgHtml = r.image ? `<img src="${r.image}" class="w-10 h-10 object-cover rounded-lg border border-gray-200 shrink-0 pointer-events-none">` : `<div class="w-10 h-10 bg-[#eaf5ec] rounded-lg flex items-center justify-center text-xl shrink-0 pointer-events-none">📝</div>`;
